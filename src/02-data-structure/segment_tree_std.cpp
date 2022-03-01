@@ -1,3 +1,4 @@
+// Reference: descomUNAL's Notebook
 using int64 = long long;
 const int64 nil = 1e18; // for sum: 0, for min: 1e18, for max: -1e18
 int64 op(int64 x, int64 y) { return min(x, y); }
