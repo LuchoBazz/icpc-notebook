@@ -13,6 +13,7 @@
 \usepackage{multirow}
 \usepackage{supertabular}
 \usepackage{booktabs}
+\usepackage{graphicx}
 \geometry{verbose,landscape,letterpaper,tmargin=2cm,bmargin=2cm,lmargin=1cm,rmargin=1cm}
 
 \usepackage{listings}
@@ -1273,6 +1274,19 @@ public:
 \end{lstlisting}
 
 \subsection{Z Algorithm}
+
+El Z-Array $z$ de un string $s$ de longitud $n$ continene para cada $k\:=\:0, \:1, \:, 2, \:…,\:n-1$ la longitud del mas largo substring de $s$ que inicia en la posición $k$ y es un prefijo de $s$.
+
+Por lo tanto, $z[k]\:=\:p$ nos dice que $s\left[0..p-1\right]$ es igual a $s\left[k..k+p-1\right]$
+
+Por Ejemplo el Z-Array de $ACBACDACBACBACDA$ es el siguiente:
+
+%\includegraphics[scale=1.5]{}
+
+\begin{figure}
+  \includegraphics[width=\linewidth]{string_z_algorithm_01.png}
+\end{figure}
+
 \begin{lstlisting}
 // z_array=length of the longest substring starting from s[i] which is also a prefix of s
 vector<int> z_algorithm(const string &s) {
