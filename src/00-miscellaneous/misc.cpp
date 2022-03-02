@@ -78,3 +78,7 @@ vector<string> split(string str, string separator) {
     }
     return tokens;
 }
+
+// Python Read
+from sys import stdin, stdout
+list(map(func, stdin.readline().strip().split()))
