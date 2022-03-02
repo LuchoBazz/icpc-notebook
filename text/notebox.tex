@@ -1051,6 +1051,24 @@ vector<int> lcp_array(const vector<int>& sa, const T &S) {
 // entre todos los pares de sufijos consecutivos en una matriz de sufijos ordenados
 \end{lstlisting}
 
+\subsection{Minimum Expression}
+Dado un string s devuelve el indice donde comienza la rotación lexicograficamente menor de s.
+
+\begin{lstlisting}
+// O(n)
+int minimum_expression(string s) {
+    s = s+s; // si no se concatena devuelve el indice del sufijo menor
+    int len = s.size(), i = 0, j = 1, k = 0;
+    while (i+k < len && j+k < len) {
+        if (s[i+k] == s[j+k]) k++;
+        else if (s[i+k] > s[j+k]) i = i+k+1, k = 0; // cambiar por < para maximum
+        else j = j+k+1, k = 0;
+        if (i == j) j++;
+    }
+    return min(i, j);
+}
+\end{lstlisting}
+
 \subsection{Manacher}
 \begin{lstlisting}
 
@@ -1108,6 +1126,15 @@ vector<string> palindromes(const T &txt) {
 \end{lstlisting}
 
 \subsection{Prefix Function}
+
+Te estan dando un string s de longitud n, la prefix function para este string esta definido como un array $\pi$ de longitud n, donde $\pi[i]$ es la longitud del prefijo propio más largo de la subcadena $s[0..i]$ que también es un sufijo de esta subcadena. Un prefijo propio de una cadena es un prefijo que no es igual a la propia cadena. Por definición $\pi[0]\:=\:0$
+
+$$\pi \left[i\right]\:=\:max_{k=0...i}\:\:\:k:\:s\left[0..k-1\right]=s\left[i-\left(k-1\right)..i\right]$$
+
+\newline
+
+Por Ejemplo la prefix function del string '$abcabcd$' is$ \left[0,\:0,\:0,\:1,\:2,\:3,\:0\right]$ y la prefix function del string $'aabaaab'$ es $\left[0,\:1,\:0,\:1,\:2,\:2,\:3\right]$
+
 \begin{lstlisting}
 template <typename T>
 vector<int> prefix_function(const T &s) {
@@ -1127,6 +1154,17 @@ vector<int> prefix_function(const T &s) {
 // Longest prefix which is also suffix
 // Time Complexity: O(N), Space Complexity: O(N)
 // N: Length of pattern
+
+// Naive Algorithm
+vector<int> prefix_function(string s) {
+    int n = (int)s.length();
+    vector<int> pi(n);
+    for (int i = 0; i < n; i++)
+        for (int k = 0; k <= i; k++)
+            if (s.substr(0, k) == s.substr(i-k+1, k))
+                pi[i] = k;
+    return pi;
+}
 \end{lstlisting}
 
 \subsection{Suffix Array}
@@ -1549,11 +1587,6 @@ void sieve() {
             marked[j] = true;
     }
 }
-\end{lstlisting}
-
-
-\subsection{Template}
-\begin{lstlisting}
 \end{lstlisting}
 
 \end{document}
