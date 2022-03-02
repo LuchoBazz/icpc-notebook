@@ -1287,6 +1287,8 @@ Por Ejemplo el Z-Array de $ACBACDACBACBACDA$ es el siguiente:
   \includegraphics[width=\linewidth]{string_z_algorithm_01.png}
 \end{figure}
 
+Es este caso, para el ejemplo, $z[6]\:=\:5$, porque el substring $ACBAC$ de longitud $5$ es un prefijo de $s$, pero para el substring $ACBACB$ de longitud $6$ no es un prefijo de $s$.
+
 \begin{lstlisting}
 // z_array=length of the longest substring starting from s[i] which is also a prefix of s
 vector<int> z_algorithm(const string &s) {
