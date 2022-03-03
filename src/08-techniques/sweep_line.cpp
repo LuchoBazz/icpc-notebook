@@ -1,11 +1,6 @@
 struct Event {
-    int time;
-    int delta;
-    int idx;
-
-    bool operator<(const Event &other) const {
-        return time < other.time;
-    }
+    int time, delta, idx;
+    bool operator<(const Event &other) const { return time < other.time; }
 };
 
 // Usage:
