@@ -2365,6 +2365,186 @@ int hamming(const T &lhs, const T &rhs) {
 // }
 \end{lstlisting}
 
+% GEOMETRY
+
+\section{Geometry}
+
+\subsection{Point Struct}
+\begin{lstlisting}
+typedef long double floating_t;
+
+template<typename T>
+struct Point {
+    T x;
+    T y;
+
+    Point<T> operator + (Point<T> p) { return {x+p.x, y+p.y};}
+    Point<T> operator - (Point<T> p) { return {x-p.x, y-p.y};}
+    Point<T> operator * (Point<T> p) { return {x*p.x-y*p.y, x*p.y+y*p.x};}
+    Point<T> operator * (T p) { return {x*p, y*p};}
+    Point<T> operator / (T p) { return {x/p, y/p};} // only for floating point
+    
+    bool operator == (const Point<T> &p) const { return x==p.x && y == p.y;}
+    bool operator != (const Point<T> &p) const { return !(*this == p);}
+    bool operator <  (const Point<T> &p) const { return x < p.x || (x == p.x && y < p.y);}
+    bool operator >  (const Point<T> &p) const { return x > p.x || (x == p.x && y > p.y);}
+    
+    // bool operator < (const Point<T> &p) const { return y<p.y || (y==p.y && x < p.x); }
+    // bool operator > (const Point<T> &p) const { return y>p.y || (y==p.y && x > p.x); }
+    
+    // Already in Complex
+    T norm() { return x*x + y*y;}
+    T norm(Point<T> p) { return abs(p.x-x)*abs(p.x-x) + abs(p.y-y)*abs(p.y-y);}
+    
+    floating_t arg()  { return atan2(y, x);}
+    T dot(Point<T> p) { return x*p.x + y*p.y; }
+    T cross(Point<T> p) { return x*p.y - y*p.x; }
+    T orient(Point<T> b, Point<T> c) { return (b-*this).cross(c-*this); }
+    
+    // Distances
+    // Euclidean Distance
+    floating_t eucl_dist()  { return sqrt(norm()); }
+    floating_t eucl_dist(Point<T> p)  { return sqrt(norm(p)); }
+    
+    // Manhattan Distance
+    T man_dist() { return abs(x) + abs(y);}
+    T man_dist(Point<T> p) { return abs(x-p.x) + abs(y-p.y);}
+    
+    // Chebyshev Distance
+    T ch_dist() { return max(abs(x), abs(y));}
+    T ch_dist(Point<T> p) { return max(abs(x-p.x), abs(y-p.y));}
+};
+
+template<typename T>
+struct hasher {
+    size_t operator()(const Point<T> &p) const { 
+        return hash<T>()(p.x) ^ hash<T>()(p.y);
+    }
+    // unordered_map<point<int>, int, hasher<int>> mp;
+};
+
+template<typename T>
+string to_string(Point<T> p) {
+    return "(" + to_string(p.x) + ", " + to_string(p.y) + ")";
+}
+
+template<typename T>
+using point = Point<T>;
+\end{lstlisting}
+
+\subsection{Polygon}
+\begin{lstlisting}
+// 2d_geometry_point
+
+template<typename T>
+class Polygon {
+    vector<Point<T>> points;
+public:
+    Polygon(){}
+    Polygon(int n) : points(n) {}
+    Polygon(vector<Point<T>> pts) : points(pts.begin(), pts.end()) {}
+    typename vector<Point<T>>::iterator begin() { return points.begin(); }
+    typename vector<Point<T>>::iterator end() { return points.end(); }
+    int size() { return (int) points.size(); }
+    Point<T>& operator [] (int i) { return points[i]; }
+    void add(Point<T> point) {
+        points.push_back(point);
+    }
+    void delete_repetead() {
+        // Time Complexity: O(N*log2(N))
+        vector<Point<T>> aux;
+        sort(points.begin(), points.end());
+        for(Point<T> &pt : points) {
+            if(aux.empty() || aux.back() != pt) {
+                aux.push_back(pt);
+            }
+        }
+        points.swap(aux);
+    }
+};
+
+template<typename T>
+string to_string(Polygon<T> p) {
+    vector<Point<T>> points(p.begin(), p.end());
+    return to_string(points);
+}
+
+template<typename T>
+using polygon = Polygon<T>;
+\end{lstlisting}
+
+\subsection{Area of a Polygon}
+\begin{lstlisting}
+// 2d_geometry_polygon
+
+template<typename T>
+floating_t area(Polygon<T> points, bool sign = false) {
+    int n = (int) points.size();
+    floating_t ans = 0.0;
+    for(int i = 0; i < n; ++i)
+        ans += points[i].cross(points[(i + 1) % n]);
+    ans /= 2.0;
+    // ans >= 0 (counter-clock wise): Sentido Antihorario
+    // ans < 0  (clockwise): Agujas del Reloj
+    return (!sign)? abs(ans):ans;
+}
+// Area of a Polygon
+// Time Complexity: O(N), Space Complexity: O(1)
+// N: Number of Points
+\end{lstlisting}
+
+\subsection{Perimeter of a Polygon}
+\begin{lstlisting}
+// 2d_geometry_polygon
+
+template<typename T>
+floating_t perimeter(Polygon<T> points) {
+    int n = (int) points.size();
+    floating_t ans = 0.0;
+    for(int i = 0; i < n; ++i)
+        ans += points[i].eucl_dist(points[(i + 1) % n]);
+    return ans;
+}
+// Perimeter of a Polygon
+// Time Complexity: O(N), Space Complexity: O(1)
+// N: Number of Points
+\end{lstlisting}
+
+\subsection{Convex Hull - Monotone Chain}
+\begin{lstlisting}
+// 2d_geometry_polygon
+
+template<typename T>
+Polygon<T> convex_hull(Polygon<T> points) {
+    int n = (int) points.size();
+    if(n <= 1) return points;
+    vector<Point<T>> hull;
+    // Sorting Points
+    sort(points.begin(), points.end());
+    // it=0: Upper Hull
+    // it=1: Lower Hull
+    for(int it = 0; it < 2; ++it) {
+        int sz = (int) hull.size();
+        for(int i = 0; i < n; ++i) {
+            // if colineal are needed, use < and remove repeated points
+            while((int) hull.size()>=sz+2 && hull[hull.size()-2].orient(hull.back(), points[i]) <= 0) {
+                hull.pop_back();
+            }
+            hull.push_back(points[i]);
+        }
+        // Eliminating repeating points, start and end point
+        hull.pop_back();
+        reverse(points.begin(), points.end());
+    }
+    // removing duplicate points
+    if(hull.size()==2 && hull[0]==hull[1])
+        hull.pop_back();
+    return Polygon<T>(hull);
+}
+// Convex Hull - Monotone Chain
+// Time Complexity: O(N*log2(N)), Space Complexity: O(N)
+// N: Number of Points
+\end{lstlisting}
 
 % FORMULAS
 \section{Formulas}
