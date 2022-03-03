@@ -337,6 +337,8 @@ struct min_queue {
 };
 \end{lstlisting}
 
+\vfill
+
 \subsection{Prefix Sum Immutable 2D}
 \begin{lstlisting}
 template<typename T>
@@ -1625,5 +1627,1322 @@ void sieve() {
     }
 }
 \end{lstlisting}
+
+% DYNAMIC PROGRAMMING
+
+\section{Dynamic Programming}
+
+\subsection{Diameter dp on tree}
+\begin{lstlisting}
+const int mxN = 2e5 + 10;
+vector<int> adj[mxN];
+int n;
+ 
+int dist[mxN];
+int dp[mxN];
+ 
+int dfs(int node, int parent) {
+    dist[node] = 0;
+    int mx_dist = 0;
+    int first = -1, second = -1;
+    for(auto &child: adj[node]) {
+        if(child == parent)
+            continue;
+        mx_dist = max(mx_dist, dfs(child, node) + 1);
+        if(dist[child] >= first) {
+            if(first != -1) second = first;
+            first = dist[child];
+        } else if(dist[child] >= second) {
+            second = dist[child];
+        }
+    }
+    dist[node] = mx_dist;
+    dp[node] = first + second + 2;
+    return mx_dist;
+}
+// undigraph
+// dfs(0, -1);
+// int diameter = *max_element(dp, dp + n);
+\end{lstlisting}
+
+\subsection{DP on Directed Acyclic Graph}
+\begin{lstlisting}
+// Problemas clasicos con DAG
+const int INF = 1e9;
+const int MAX = 1000;
+int init, fin;
+int dp[MAX];
+vector<int> g[MAX]; // USADO PARA ARISTAS NO PONDERADAS
+vector<pair<int, int>> gw[MAX]; // PARA ARISTAS PONDERADAS First: Nodo vecino. Second = Peso de la arista
+// Funcion para calcular el numero de formas de ir del nodo u al nodo end
+// LLamar para nodo inicial (init)
+int ways(int u){
+    if(u == fin) return 1;
+    int &ans = dp[u];
+    if(ans != -1) return ans;
+    ans = 0;
+    for(auto v: g[u]){
+        ans += ways(v);
+    }
+    return ans;
+}
+// MINIMO CAMINO DESDE U HASTA END. LLAMAR PARA INIT
+int min_way(int u){
+    if(u == fin) return 0;
+    int &ans = dp[u];
+    if(ans != -1) return ans;
+    ans = INF;
+    for(auto v: gw[u]){
+        ans = min(ans, min_way(v.first) + v.second);
+    }
+    return ans;
+}
+\end{lstlisting}
+
+\subsection{Edit Distance}
+\begin{lstlisting}
+int edit_dist(string &s1, string &s2, int m, int n) {
+    // If first string is empty, the only option is to
+    // insert all characters of second string into first
+    if (m == 0) return n;
+
+    // If second string is empty, the only option is to
+    // remove all characters of first string
+    if (n == 0)
+        return m;
+ 
+    // If last characters of two strings are same, nothing
+    // much to do. Ignore last characters and get count for
+    // remaining strings.
+    if (s1[m - 1] == s2[n - 1])
+        return edit_dist(s1, s2, m - 1, n - 1);
+ 
+    // If last characters are not same, consider all three
+    // operations on last character of first string,
+    // recursively compute minimum cost for all three
+    // operations and take minimum of three values.
+    return 1 + min({
+        edit_dist(s1, s2, m, n - 1),    // Insert
+        edit_dist(s1, s2, m - 1, n),    // Remove
+        edit_dist(s1, s2, m - 1, n - 1) // Replace
+    });
+}
+\end{lstlisting}
+
+\subsection{Snapsack}
+\begin{lstlisting}
+vector<vector<int64>> dp;
+
+int64 knapsack(vector<int64> &val, vector<int64> &wt, int item, int capacity) {
+    // Casos base
+    if(item <= 0 || capacity <= 0) return 0;
+
+    if(dp[item][capacity] != -1) return dp[item][capacity];
+    
+    int itemCurr = item - 1;
+    // Maximos items acumulado
+    int64 lastMax = knapsack(val, wt, item-1, capacity);
+    int64 currMax = 0;
+
+    if(wt[itemCurr] <= capacity) {
+        // Valor del item actual + el mejor item que cabe en la mochila
+        currMax = val[itemCurr] + knapsack(val, wt, item - 1, capacity-wt[itemCurr]);
+    }
+
+    dp[item][capacity] = max(lastMax, currMax);
+    return dp[item][capacity];
+}
+// vector<int> val{10, 40, 30, 50};
+// vector<int> wt{5, 4, 6, 3};
+// int n = val.size();
+// int w = 10;
+// knapsack(val, wt, n, w)
+\end{lstlisting}
+
+\subsection{Longest Common Subsecuence}
+\begin{lstlisting}
+int lcs(string X, string Y, int m, int n) {
+    if (m == 0 || n == 0) {
+        return 0;
+    }
+    if (X[m - 1] == Y[n - 1]) {
+        return 1 + lcs(X, Y, m - 1, n - 1);
+    }
+    return max(lcs(X, Y, m, n - 1), lcs(X, Y, m - 1, n));
+}
+\end{lstlisting}
+
+\subsection{Longest Increasing Subsecuence - DP}
+\begin{lstlisting}
+int lis(int arr[], int i, int n, int prev) {
+    // Base case: nothing is remaining
+    if (i == n) {
+        return 0;
+    }
+    int excl = lis(arr, i + 1, n, prev); 
+    int incl = 0;
+    if (arr[i] > prev) {
+        incl = 1 + lis(arr, i + 1, n, arr[i]);
+    }
+    return max(incl, excl);
+}
+\end{lstlisting}
+
+\subsection{Longest Increasing Subsecuence - Optimization}
+\begin{lstlisting}
+// Longest Increasing Subsequence O(n*lg(n))
+template <typename T>
+int lis(const vector<T> &a) {
+    vector<T> u;
+    for (const T &x : a) {
+        auto it = lower_bound(u.begin(), u.end(), x);
+        if (it == u.end()) {
+            u.push_back(x);
+        } else {
+            *it = x;
+        }
+    }
+    return (int) u.size();
+}
+// LIS O(nlog(n)) Para longest non-decreasing cambiar lower_bound por upper_bound
+int lis(){
+    LIS.clear();
+    for(int i = 0; i < N; i++){
+        auto id = lower_bound(LIS.begin(), LIS.end(), A[i]);
+        if(id == LIS.end()){
+            LIS.push_back(A[i]);
+            dp[i] = LIS.size();
+        } 
+        else{
+            int idx = id - LIS.begin();
+            LIS[idx] = A[i];
+            dp[i] = idx + 1;
+        }
+    }
+    return LIS.size();
+}
+// METODO PARA RECONSTRUIR LIS. Para non-decreasing cambiar < por <=
+stack<int> rb;
+void build(){
+    int k = LIS.size();
+    int cur = oo;
+    for(int i = N - 1; i >= 0, k; i--){
+        if(A[i] < cur && k == dp[i]){
+            cur = A[i];
+            rb.push(A[i]);
+            k--;
+        }
+    }
+}
+\end{lstlisting}
+
+% Search
+\section{Search}
+
+\subsection{Binary Search - I}
+\begin{lstlisting}
+int n = oo;
+int low = 0, high = n, mid;
+while (high - low > 1) {
+    mid = low + (high - low) / 2;
+    if(!ok(mid)) {
+        low = mid;
+    } else {
+        high = mid;
+    }
+}
+// low or high
+\end{lstlisting}
+
+\subsection{Binary Search - II}
+\begin{lstlisting}
+int n = oo;
+int index = -1;
+for(int jump = n+1; jump >= 1; jump /= 2) {
+    while(jump+index<n && !ok(jump+index)) {
+        index += jump;
+    }
+}
+// index + 1
+\end{lstlisting}
+
+\subsection{Binary Search on Real Values - I}
+\begin{lstlisting}
+double eps = 1e-9;
+double n = inf;
+double low = 0.0, high = n, mid;
+while ((high - low) > eps) {
+    mid = double(high + low) / 2.0;
+    if(!ok(mid)) {
+        low = mid;
+    } else {
+        high = mid;
+    }
+}
+// low or high
+\end{lstlisting}
+
+\subsection{Binary Search on Real Values - II}
+\begin{lstlisting}
+double n = inf;
+double low = 0.0, high = n, mid;
+int iter = 0;
+while(iter < 300) {
+    mid = double(high + low) / 2.0;
+    if(!ok(mid)) {
+        low = mid;
+    } else {
+        high = mid;
+    }
+    iter++;
+}
+// low or high
+\end{lstlisting}
+
+\subsection{Merge Sort}
+\begin{lstlisting}
+void merge(vector<int> &v, int left, int mid, int right) {
+    vector<int> ordered(right-left+1);
+    int i = left, j = mid + 1, idx = 0;
+    while(i <= mid ||  j <= right) {
+        if(i <= mid && j <= right) {
+            if(v[i] < v[j]) {
+                ordered[idx++] = v[i++];    
+            } else if(v[i] > v[j]) {
+                ordered[idx++] = v[j++];
+            } else {
+                ordered[idx++] = v[i++];
+                ordered[idx++] = v[j++];
+            }
+        } else if(i <= mid) {
+            ordered[idx++] = v[i++];
+        } else if(j <= right) {
+            ordered[idx++] = v[j++];
+        }
+    }
+    for(idx=0, i = left; i <= right; i++)
+        v[i] = ordered[idx++];
+}
+void merge_sort(vector<int> &v, int left, int right) {
+    if(left == right) {
+        return;
+    } else if(left < right) {
+        int mid = (left+right)/2;
+        merge_sort(v, left, mid);
+        merge_sort(v, mid+1, right);
+        merge(v, left, mid, right);    
+    }
+}
+void merge_sort(vector<int> &v) {
+    merge_sort(v, 0, (int) v.size() - 1);
+}
+\end{lstlisting}
+
+% TECHNIQUES
+\section{Techniques}
+
+\subsection{Divide and Conquer}
+\begin{lstlisting}
+void divide(int left, int right) {
+    if(left == right) {
+        return;
+    } else if(left < right) {
+        int mid = (left + right) / 2;
+        divide(left, mid);
+        divide(mid+1, right);
+    }
+}
+\end{lstlisting}
+
+\subsection{Mo's Algorithm}
+\begin{lstlisting}
+// Complexity: O(|N+Q|*sqrt(|N|)*|add+del|)
+
+struct Query {
+    int left, right, index;
+    Query (int l, int r, int idx)
+        : left(l), right(r), index(idx) {}
+};
+
+int S; // S = sqrt(n);
+
+bool cmp (const Query &a, const Query &b) {
+    if (a.left/S != b.left/S)
+        return a.left/S < b.left/S;
+    return a.right > b.right;
+}
+
+// global functions
+void add(int idx) {
+
+}
+void del(int idx) {
+
+}
+auto get_answer() {
+
+}
+
+// at main()
+vector<Query> Q;
+Q.reserve(q+1);
+int from, to;
+for(int i = 0; i < q; ++i){
+    in >> from >> to; // don't forget (from--, to--) if it's 1-indexed
+    Q.push_back(Query(from, to, i));
+}
+
+S = sqrt(n); // n = size of array
+sort(Q.begin(), Q.end(), cmp);
+
+vector<int> ans(q);
+int left = 0, right = -1;
+
+for (int i = 0; i < (int) Q.size(); ++i) {
+    while (right < Q[i].right)
+        add(++right);
+    while (left > Q[i].left)
+        add(--left);
+    while (right > Q[i].right)
+        del(right--);
+    while (left < Q[i].left)
+        del(left++);
+    
+    ans[Q[i].index] = get_answer();
+}
+\end{lstlisting}
+
+\subsection{Sliding Windows}
+\begin{lstlisting}
+// sequence: [a1, a2, a3, a4, a5, a6, a7,  ..., an]
+//                |<- sliding window ->|
+//                v                    v 
+//             [start]-->            [end]-->
+
+// int n = (int) any.size();
+// int start=0, end=0;
+// map<int, int> counter;
+// int ans = 0;
+// while(end < n) {
+//     counter[any[end]]++;
+//     while(condition(start, end) && start <= end) {
+//         counter[any[start]]--;
+//         process_logic1(start,end);
+//         start++;
+//     }
+//     process_logic2(start,end);
+//     ans = max(ans, end - start + 1);
+//     end++;
+// }
+// print(ans);
+\end{lstlisting}
+
+\subsection{Sweep Line}
+\begin{lstlisting}
+struct Event {
+    int time, delta, idx;
+    bool operator<(const Event &other) const { return time < other.time; }
+};
+
+// Usage:
+// vector<Event> events;
+// events.reserve(2*n);
+// int from, to;
+// for(int i = 0; i < n; ++i) {
+//     read from and to values
+//     events.push_back(Event{from, 1, i});
+//     events.push_back(Event{to, -1, i});
+// }
+// sort(events.begin(), events.end());
+// for(const auto &event: events) {
+//     process_logic(event.delta); for example
+//     total += event.delta;
+//     best = max(best, total);
+// }
+\end{lstlisting}
+
+\subsection{Two Pointer Left Right Boundary}
+\begin{lstlisting}
+// sequence:  [a1, a2, a3, a4, ..., an]
+//     [left] ->->              <-<-<- [right]
+
+// int left=0, right=n-1;
+// while(left < right) {
+//     if(left_condition(left)) {
+//         left++;
+//     }
+//     if(right_condition(right)) {
+//         right--;
+//     }
+//     process_logic(left, right);
+// }
+\end{lstlisting}
+
+\subsection{Two Pointer1 Pointer2}
+\begin{lstlisting}
+// seq1: [a1, a2, a3, ..., an]
+// [p1] ->->->->->
+
+// seq2: [b1, b2, b3, ..., bn]
+// [p2] ->->
+
+// int n = (int) seq1.size();
+// int m = (int) seq2.size();
+// int p1=0, p2=0; // or seq1[0], seq2[0]
+// while(p1 < n && p2 < m) {
+//     if(p1_condition(p1)) {
+//         p1++;
+//     }
+//     if(p2_condition(p2)) {
+//         p2++;
+//     }
+//     process_logic(p1, p2);
+// }
+\end{lstlisting}
+
+\subsection{Two Pointers Old And New State}
+\begin{lstlisting}
+// sequence:             [ a1,   a2,   a3, ...]
+//                         |      |    |
+//                         v      v    v
+// new state:      [new0,  new1, new2, new3, ...]
+//                    |     |      |
+//                    v     v      v
+// new state: [old0, old1, old2,  old3, ...]
+
+// new state:       [old0,  old1,  old2, old3, ...]
+//                    |      |      |
+//                    v      v      v
+// new state: [new0, new1, new2,  new3, ...]
+
+// int last = default_val1;
+// int now = default_val2;
+// for(int i = 0; i < n; ++i){
+//     last =  now;
+//     now = process_logic(element, old)
+// }
+\end{lstlisting}
+
+\subsection{Two Pointers Slow Fast}
+\begin{lstlisting}
+// sequence: [a1, a2, a3, ..., an]
+// slow runner: [slow] ->->
+// fast runner: [fast] ->->->->
+
+// int slow = 0;
+// for(int fast = 0; fast < n; ++fast){
+//     if(slow_condition(slow)) {
+//         slow = slow.next;
+//         slow += 1;
+//     }
+//     process_logic(slow, fast);
+// }
+\end{lstlisting}
+
+
+% COMBINATORICS
+\section{Combinatorics}
+
+\subsection{All Combinations Backtracking}
+\begin{lstlisting}
+vector<vector<int>> answer;
+vector<int> combination;
+void combinations_backtraking(const int &n, const int &k,  int idx) {
+    if(idx == k) {
+        answer.push_back(combination);
+        return;
+    }
+    int start = (combination.size()==0)?1:combination.back()+1;
+    for(int i = start; i <= n; ++i) {
+        combination.push_back(i);
+        combinations_backtraking(n, k, idx+1);    
+        combination.pop_back();
+    }
+}
+\end{lstlisting}
+
+\subsection{Binomial Coefficient}
+Calcula el coeficiente binomial nCr, entendido como el numero de subconjuntos de r elementos escogidos de un conjunto con n elementos.
+
+\begin{lstlisting}
+// O(min(r, n-r))
+int64 nCr(int64 n, int64 r) {
+    if (r < 0 || n < r) return 0;
+    r = min(r, n-r);
+    int64 ans = 1;
+    for (int i = 1; i <= r; i++) {
+        ans = ans * (n-i+1) / i;
+    }
+    return ans;
+}
+\end{lstlisting}
+
+\subsection{Kth Permutation}
+\begin{lstlisting}
+vector<int> kth_permutation(vector<int> perm, int  k) {
+    int64_t factorial = 1LL;
+    int n = (int) perm.size();
+    for(int64_t num = 2; num < n; ++num)
+        factorial *= num; // (n-1)!
+    k--; // k-th to 0-indexed
+    vector<int> answer; answer.reserve(n);
+    while(true) {
+        answer.push_back(perm[k / factorial]);
+        perm.erase(perm.begin()+(k/factorial));
+        if((int) perm.size() == 0)
+            break;
+        k %= factorial;
+        factorial /= (int) perm.size();
+    }
+    return answer;
+}
+
+vector<int> kth_permutation(int n, int k, int start=0) {
+    vector<int> perm(n);
+    iota(perm.begin(), perm.end(), start);
+    return kth_permutation(perm, k);
+}
+
+string kth_perm_string(int n, int k) {
+    assert(1 <= n && n <= 26);
+    vector<int> perm = kth_permutation(n, k);
+    string alpha = "";
+    for(char i='a'; i <= ('a'+n); ++i)
+        alpha.push_back(i);
+    string answer="";
+    for(int &idx: perm)
+        answer.push_back(alpha[idx]);
+    return answer;
+}
+\end{lstlisting}
+
+\subsection{Next Combination}
+this works for 1 <= k <= n <= 20 approximately
+Complexity: worst case $O(2^n)$ approximately
+\begin{lstlisting}
+bool next_combination(vector<int> &comb, int n) {
+    int k = (int) comb.size();
+    for (int i = k - 1; i >= 0; i--) {
+        if (comb[i] <= n - k + i) {
+            ++comb[i];
+            while (++i < k) {
+                comb[i] = comb[i - 1] + 1;
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
+void all_combinations(int n, int k) {
+    vector<int> comb(k);
+    iota(comb.begin(), comb.end(), 1);
+    do {
+        for (const int &v : comb) {
+            cout << v << " ";
+        }
+        cout << endl;
+    } while (next_combination(comb, n));
+}
+\end{lstlisting}
+
+% NUMERICS
+\section{Numerics}
+
+\subsection{Fastpow}
+\begin{lstlisting}
+template<typename T, typename U>
+T fastpow(T a, U b) {
+    assert(0 <= b);
+    T ans = static_cast<T>(1);
+    while (b > 0) {
+        if (b & 1) ans = ans*a;
+        a *= a;
+        b >>= 1;
+    }
+    return ans;
+}
+\end{lstlisting}
+
+\subsection{Numeric Mod}
+\begin{lstlisting}
+const int MOD = int(1e9+7);
+
+template<typename T>
+T sub(T a, T b) {
+    return (1LL*(a-b)%MOD + MOD) % MOD;
+}
+template<typename T>
+T add(T a, T b) {
+    return (1LL*(a%MOD) + 1LL*(b%MOD)) % MOD;
+}
+template<typename T>
+T mul(T a, T b) {
+    return (1LL*(a%MOD) * (b%MOD)) % MOD;
+}
+template<typename T, typename U>
+T fastpow(T a, U b) {
+    assert(0 <= b);
+    T answer = static_cast<T>(1);
+    while (b > 0) {
+        if (b & 1) {
+            answer = mul(answer, a);
+        }
+        a = mul(a, a);
+        b >>= 1;
+    }
+    return answer;
+}
+template<typename T>
+T inverse(T a) {
+    a %= MOD;
+    if (a < 0) a += MOD;
+    T b = MOD, u = 0, v = 1;
+    while (a) {
+        T t = b / a;
+        b -= t * a; swap(a, b);
+        u -= t * v; swap(u, v);
+    }
+    assert(b == 1);
+    if (u < 0) u += MOD;
+    return u;
+}
+template<typename T>
+T division(T a, T b) {
+    return mul(a, inverse(b));
+}
+\end{lstlisting}
+
+
+% BIT MASK
+\section{Bit Mask}
+
+\subsection{Tricks}
+\begin{lstlisting}
+int zeros_left(int num) {return (num==0)?32:__builtin_clz(num);}
+int zeros_right(int num) {return (num==0)?0:__builtin_ctz(num);}
+int count_ones(int num) {return __builtin_popcount(num);}
+int parity(int num) {return __builtin_parity(num);}
+int LSB(int num) {return __builtin_ffs(num);} //  Least Significant Bit [0 if num == 0]
+ 
+int64_t zeros_left(int64_t num) {return (num==0LL)?64LL:__builtin_clzll(num);}
+int64_t zeros_right(int64_t num) {return (num==0LL)?0LL:__builtin_ctzll(num);}
+int64_t count_ones(int64_t num) {return __builtin_popcountll(num);}
+int64_t parity(int64_t num) {return __builtin_parityll(num);}
+int64_t LSB(int64_t num) {return __builtin_ffsll(num);} //  Least Significant Bit [0 if number == 0]
+ 
+template<typename T>
+int hamming(const T &lhs, const T &rhs) {
+    if(is_same<T, int64_t>::value) return __builtin_popcountll(lhs ^ rhs);
+    return __builtin_popcount(lhs ^ rhs);
+}
+
+// 1LL for 64-bits
+
+// x & 1            : Check if x is odd
+// x & (1 << i)     : Check if the i-th bit is HIGH
+// x = x | (1<<i)   : Set HIGH i-th bit
+// x = x & ~(1<<i)  : Set LOW i-th bit
+// x = x ^ (1<<i)   : Flip i-th bit
+// x = ~x           : Flip all the bits
+// x & -x           : returns the number of the first HIGH bit from right to left (power of 2, not the index)
+// log2(x & -x)     : Return position of first bit HIGH from right to left (0-index [..., 3, 2, 1, 0])
+// ~x & (x+1)       : Returns the number of the first LOW bit from right to left (power of 2, not the index)
+// log2(~x & (x+1)) : Returns position of the first LOW bit from right to left (0-index [..., 3, 2, 1, 0])
+// x = x | (x+1)    : Set HIGH of first bit from right to left
+// x = x & (x-1)    : Set LOW of first bit from right to left
+// x = x & ~y       : Set LOW in x the HIGH bits in y
+
+// Iterates over the indices of the high bits in a mask
+/// O(#bits_encendidos)
+// for (int x = mask; x; x &= x-1) {
+//     int i = __builtin_ctz(x);
+// }
+
+// Iterate all the submasks of a mask. (Iterate all submasks of all masks is O(3^n)).
+/// O(2^(#bits_encendidos))
+// for (int sub = mask; sub; sub = (sub-1)&mask) {
+// }
+\end{lstlisting}
+
+
+% FORMULAS
+\section{Formulas}
+
+\subsection{ASCII Table}
+
+Caracteres ASCII con sus respectivos valores numéricos.
+
+\begin{tabbing}
+\textbf{No.}\hspace{1cm} \=  \textbf{ASCII}\hspace{2cm} \= \textbf{No.}\hspace{1cm} \= \textbf{ASCII}\hspace{2cm}  \\ 
+0 \> NUL \> 16 \> DLE \\
+1 \> SOH \> 17 \> DC1 \\
+2 \> STX \> 18 \> DC2 \\
+3 \> ETX \> 19 \> DC3 \\
+4 \> EOT \> 20 \> DC4 \\
+5 \> ENQ \> 21 \> NAK \\
+6 \> ACK \> 22 \> SYN \\
+7 \> BEL \> 23 \> ETB \\
+8 \> BS \> 24 \> CAN \\
+9 \> TAB \> 25 \> EM \\
+10 \> LF \> 26 \> SUB \\
+11 \> VT \> 27 \> ESC \\
+12 \> FF \> 28 \> FS \\
+13 \> CR \> 29 \> GS \\
+14 \> SO \> 30 \> RS \\
+15 \> SI \> 31 \> US \\ 
+\end{tabbing}
+
+
+\begin{tabbing}
+\textbf{No.}\hspace{1cm} \=  \textbf{ASCII}\hspace{2cm} \= \textbf{No.}\hspace{1cm} \= \textbf{ASCII}\hspace{2cm}  \\ 
+32 \> (space) \> 48 \> 0 \\
+33 \> ! \> 49 \> 1 \\
+34 \> " \> 50 \> 2 \\
+35 \> \# \> 51 \> 3 \\
+36 \> \$ \> 52 \> 4 \\
+37 \> \% \> 53 \> 5 \\
+38 \> \& \> 54 \> 6 \\
+39 \> ' \> 55 \> 7 \\
+40 \> ( \> 56 \> 8 \\
+41 \> ) \> 57 \> 9 \\
+42 \> * \> 58 \> : \\
+43 \> + \> 59 \> ; \\
+44 \> , \> 60 \> < \\
+45 \> - \> 61 \> = \\
+46 \> . \> 62 \> > \\
+47 \> / \> 63 \> ? \\ 
+\end{tabbing}
+
+\begin{tabbing}
+\textbf{No.}\hspace{1cm} \=  \textbf{ASCII}\hspace{2cm} \= \textbf{No.}\hspace{1cm} \= \textbf{ASCII}\hspace{2cm}  \\ 
+64 \> @ \> 80 \> P \\
+65 \> A \> 81 \> Q \\
+66 \> B \> 82 \> R \\
+67 \> C \> 83 \> S \\
+68 \> D \> 84 \> T \\
+69 \> E \> 85 \> U \\
+70 \> F \> 86 \> V \\
+71 \> G \> 87 \> W \\
+72 \> H \> 88 \> X \\
+73 \> I \> 89 \> Y \\
+74 \> J \> 90 \> Z \\
+75 \> K \> 91 \> [ \\
+76 \> L \> 92 \> \textbackslash \\
+77 \> M \> 93 \> ] \\
+78 \> N \> 94 \> \textasciicircum \\
+79 \> O \> 95 \> \_ \\ 
+\end{tabbing}
+
+\begin{tabbing}
+\textbf{No.}\hspace{1cm} \=  \textbf{ASCII}\hspace{2cm} \= \textbf{No.}\hspace{1cm} \= \textbf{ASCII}\hspace{2cm}  \\ 
+96 \> ` \> 112 \> p \\
+97 \> a \> 113 \> q \\
+98 \> b \> 114 \> r \\
+99 \> c \> 115 \> s \\
+100 \> d \> 116 \> t \\
+101 \> e \> 117 \> u \\
+102 \> f \> 118 \> v \\
+103 \> g \> 119 \> w \\
+104 \> h \> 120 \> x \\
+105 \> i \> 121 \> y \\
+106 \> j \> 122 \> z \\
+107 \> k \> 123 \> \{ \\
+108 \> l \> 124 \> \textbar \\
+109 \> m \> 125 \> \} \\
+110 \> n \> 126 \> \textasciitilde \\
+111 \> o \> 127 \>  \\  
+\end{tabbing}
+
+\subsection{Summations}
+
+\begin{itemize}
+\item	$\sum_{i=1}^{n} i^2 = \frac{n(n+1)(2n+1)}{6}$
+\item	$\sum_{i=1}^{n} i^3 = (\frac{n(n+1)}{2})^2$
+\item	$\sum_{i=1}^{n} i^4 = \frac{n(n+1)(2n+1)(3n^2+3n-1)}{30}$
+\item	$\sum_{i=1}^{n} i^5 = \frac{(n(n+1))^2(2n^2+2n-1)}{12}$
+\item	$\sum_{i=0}^{n} x^i = \frac{x^{n+1}-1}{x-1}$ para $x \neq 1$	
+\end{itemize}
+
+\subsection{Misellanious Formulas}
+\begin{center}
+\tablefirsthead{}
+\tabletail{
+\midrule 
+\multicolumn{2}{r}{{Continúa en la siguiente columna}} \\}
+\tablelasttail{}
+{\renewcommand{\arraystretch}{1.4}
+\begin{supertabular}{|p{2.2cm}|p{8.2cm}|}
+\hline
+\multicolumn{2}{|c|}{} \\
+\multicolumn{2}{|c|}{PERMUTACIÓN Y COMBINACIÓN} \\
+\multicolumn{2}{|c|}{} \\ \hline
+Combinación (Coeficiente Binomial) & Número de subconjuntos de k elementos escogidos de un conjunto con n elementos.
+
+$ \binom{n}{k} = \binom{n}{n-k} = \displaystyle\frac{n!}{k!(n-k)!} $ 
+
+\\ \hline
+
+Combinación con repetición & Número de grupos formados por n elementos, partiendo de m tipos de elementos.
+
+$ CR_{m}^{n} = \binom{m+n-1}{n} = \displaystyle\frac{(m + n - 1)!}{n!(m-1)!} $
+
+\\ \hline
+Permutación & Número de formas de agrupar n elementos, donde importa el orden y sin repetir elementos
+
+$ P_{n} = n! $
+\\ \hline
+Permutación múltiple & 
+Elegir r elementos de n posibles con repetición 
+
+
+$ n^{r} $
+\\ \hline
+Permutación con repetición & Se tienen n elementos donde el primer elemento se repite a veces , el segundo b veces , el tercero c veces, ...
+
+$ PR_{n}^{a,b,c...} = \displaystyle\frac{P_{n}}{a!b!c!...}$
+
+\\ \hline
+Permutaciones sin repetición & Núumero de formas de agrupar r elementos de n disponibles, sin repetir elementos
+
+
+$\displaystyle\frac{n!}{(n-r)!}$
+
+\\ \hline
+\multicolumn{2}{|c|}{} \\
+\multicolumn{2}{|c|}{DISTANCIAS} \\
+\multicolumn{2}{|c|}{} \\ \hline
+Distancia Euclideana & $d_{E}(P_{1},P_{2}) = \sqrt{(x_{2}-x_{1})^{2}+(y_{2}-y_{1})^{2}}$ \\ \hline
+Distancia Manhattan & $d_{M}(P_{1}, P_{2}) = |x_{2} - x_{1}| + |y_{2} - y_{1}|$ \\ \hline
+\multicolumn{2}{|c|}{} \\
+\multicolumn{2}{|c|}{CIRCUNFERENCIA Y CÍRCULO} \\ 
+\multicolumn{2}{|c|}{} \\ \hline
+\multicolumn{2}{|p{12cm}|}{Considerando $r$ como el radio, $\alpha$ como el ángulo del arco o sector, y (R, r) como radio mayor y menor respectivamente.} \\ \hline
+Área                   & $A = \pi * r^{2} $\\ \hline
+Longitud               & $L = 2*\pi*r$  \\ \hline
+Longitud de un arco    & $L = \displaystyle\frac{2*\pi*r*\alpha}{360}$  \\ \hline
+Área sector circular   & $A = \displaystyle\frac{\pi * r^{2} * \alpha}{360}$ \\ \hline
+Área corona circular   & $A = \pi  (R^{2} - r^{2})$ \\ \hline
+\multicolumn{2}{|c|}{} \\
+\multicolumn{2}{|c|}{TRIÁNGULO} \\ 
+\multicolumn{2}{|c|}{} \\ \hline
+\multicolumn{2}{|p{12cm}|}{Considerando $b$ como la longitud de la base, $h$ como la altura, letras minúsculas como la longitud de los lados, letras mayúsculas como los ángulos, y $r$ como el radio de círcunferencias asociadas.} \\ \hline
+Área conociendo base y altura & $A = \displaystyle\frac{1}{2}b * h$ \\ \hline
+Área conociendo 2 lados y el ángulo que forman & $A = \displaystyle\frac{1}{2}b*a*sin(C)$ \\ \hline
+Área conociendo los 3 lados & $ A = \sqrt{p(p - a)(p - b)(p - c)}$ con $p = \displaystyle\frac{a + b + c}{2}$ \\ \hline
+Área de un triángulo circunscrito a una circunferencia & $A = \displaystyle\frac{abc}{4r}$ \\ \hline
+Área de un triángulo inscrito a una circunferencia & $A = r(\displaystyle\frac{a+b+c}{2})$ \\ \hline
+Área de un triangulo equilátero & $A = \displaystyle\frac{\sqrt{3}}{4}a^{2}$ \\ \hline
+\multicolumn{2}{|c|}{} \\
+\multicolumn{2}{|c|}{RAZONES TRIGONOMÉTRICAS} \\
+\multicolumn{2}{|c|}{} \\ \hline
+\multicolumn{2}{|p{12cm}|}{Considerando un triangulo rectángulo de lados $a, b$ y $c$, con vértices $A, B$ y $C$ (cada vértice opuesto al lado cuya letra minuscula coincide con el) y un ángulo $\alpha$ con centro en el vertice $A$. a y b son catetos, c es la hipotenusa:}
+\\ \hline
+\multicolumn{2}{|p{12cm}|}{
+$sin(\alpha) = \displaystyle\frac{cateto\ opuesto}{hipotenusa} = \displaystyle\frac{a}{c}$ 
+
+} 
+\\ \hline
+\multicolumn{2}{|p{12cm}|}{
+$cos(\alpha) = \displaystyle\frac{cateto\ adyacente}{hipotenusa} = \frac{b}{c}$ 
+
+} 
+\\ \hline
+\multicolumn{2}{|p{12cm}|}{
+$tan(\alpha) = \displaystyle\frac{cateto\ opuesto}{cateto\ adyacente} = \frac{a}{b}$ 
+
+} 
+\\ \hline
+\multicolumn{2}{|p{12cm}|}{
+$sec(\alpha) = \displaystyle\frac{1}{cos(\alpha)} = \frac{c}{b}$ 
+
+}
+\\ \hline
+\multicolumn{2}{|p{12cm}|}{
+$csc(\alpha) = \displaystyle\frac{1}{sin(\alpha)} = \frac{c}{a}$ 
+
+} 
+\\ \hline
+\multicolumn{2}{|p{12cm}|}{
+$cot(\alpha) = \displaystyle\frac{1}{tan(\alpha)} = \frac{b}{a}$ 
+
+}
+\\ \hline
+\multicolumn{2}{|c|}{} \\
+\multicolumn{2}{|c|}{PROPIEDADES DEL MÓDULO (RESIDUO)} \\
+\multicolumn{2}{|c|}{} \\ \hline
+Propiedad neutro & (a \% b) \% b = a \% b \\ \hline
+Propiedad asociativa en multiplicación &  (ab) \% c = ((a \% c)(b \% c)) \% c \\ \hline
+Propiedad asociativa en suma & (a + b) \% c = ((a \% c) + (b \% c)) \% c \\ \hline
+\multicolumn{2}{|c|}{} \\
+\multicolumn{2}{|c|}{CONSTANTES} \\
+\multicolumn{2}{|c|}{} \\ \hline
+Pi & $\pi = acos(-1) \approx 3.14159$ \\ \hline
+e & $e \approx 2.71828$ \\ \hline
+Número áureo & $\phi = \displaystyle\frac{1 + \sqrt{5}}{2} \approx 1.61803$ 
+
+\\ \hline
+
+
+\end{supertabular}
+}
+\end{center}
+
+
+\subsection{Time Complexity}
+
+Aproximación del mayor número n de datos que pueden procesarse para cada una de las complejidades algoritmicas. Tomar esta tabla solo como referencia.
+
+\begin{tabbing}
+\textbf{Complexity}\hspace{4cm} \=  \textbf{n}\hspace{3cm}   \\ 
+$O(n!)$ \> 11\\ 
+$O(n^{5})$ \> 50\\ 
+$O(2^{n}*n^{2})$ \> 18\\ 
+$O(2^{n}*n)$ \> 22\\ 
+$O(n^{4})$ \> 100\\ 
+$O(n^{3})$ \> 500\\ 
+$O(n^{2}\log_{2}n)$ \> 1.000\\ 
+$O(n^{2})$ \> 10.000\\ 
+$O(n\log_{2}n)$ \> $10^{6}$\\ 
+$O(n)$ \> $10^{8}$\\ 
+$O(\sqrt{n})$ \> $10^{16}$\\ 
+$O(\log_{2}n)$ \> -\\ 
+$O(1)$ \> -\\ 
+\end{tabbing}
+
+
+
+\subsection{Theorems}
+\begin{itemize}
+\item There is always a prime between numbers $n^2$ and $(n+1)^2$, where $n$ is any positive integer
+\item There is an infinite number of pairs of the from $\{p, p + 2\}$ where both $p$ and $p + 2$ are primes.
+\item Every even integer greater than 2 can be expressed as the sum of two primes.
+\item Every integer greater than 2 can be written as the sum of three primes.
+\end{itemize}
+
+
+\subsection{Numbers of Divisors}
+\begin{itemize}
+\item $\tau(n) = \prod_{i=1}^{k}(\alpha_i + 1)$
+\end{itemize}
+
+
+\subsection{Euler Totient Properties}
+\begin{itemize}
+\item	$\phi(p) = p - 1$
+	
+\item	$\phi(p^e) = p^e(1 - \frac{1}{p})$
+	
+\item	$\phi(n * m) = \phi(n) * \phi(m)$ si $gcd(n, m) = 1$
+	
+\item	$\phi(n) = n(1 - \frac{1}{p_1})(1 - \frac{1}{p_2})...(1 - \frac{1}{p_k})$ donde $p_i$ es primo y divide a $n$
+\end{itemize}
+
+
+\subsection{Fermat Theorem}
+Let $m$ be a prime and $x$ and $m$ coprimes, then:
+\begin{itemize}
+\item $x^{m-1} \mod m &= 1$
+\item $x^{k} \mod m &= x^{k \mod (m-1)} \mod m$
+\item $x^{\phi(m)} \mod m &= 1$
+\end{itemize}
+
+
+\subsection{Product of Divisors of a Number}
+$\mu(n) = n^{\frac{\tau(n)}{2}}$
+\begin{itemize}
+\item if $p$ is a prime, then: $\mu(p^k) = p^{\frac{k(k+2)}{2}}$
+\item if $a$ and $b$ are coprimes, then: $\mu(ab) = \mu(a)^{\tau(b)}\mu(b)^{\tau(a)}$
+\end{itemize}
+
+\subsection{Sum of Divisors of a Number}
+\begin{itemize}
+    \item $\sigma(n) = \prod_{i=1}^{k}(1 + p_{i} + ... + p_{i}^{\alpha_i}) = \prod_{i=1}^{k}\frac{p_{i}^{\alpha_i + 1} - 1}{p_i - 1}$
+\end{itemize}
+
+
+\subsection{Catalan Numbers}
+\begin{itemize}
+    \item $C_n = \frac{1}{n+1} \binom{2n}{n} = \frac{(2n)!}{(n+1)!n!}$ con $n \geq 0$, $C_0 = 1$ y $C_{n+1} = \frac{2(2n + 1)}{n + 2} C_{n}$
+    \item 1, 1, 2, 5, 14, 42, 132, 429, 1430, 4862, 16796, 58786, 208012, 742900, 2674440, 9694845, 35357670
+\end{itemize}
+
+
+\subsection{Combinatorics}
+\begin{itemize}
+\item Distribute $N$ objects among $K$ people	\\
+$\big(\binom{n}{k}\big) = \binom{n + k -1}{k} = \frac{(n + k - 1)!}{k!(n-1)!}$
+\item Hockey-stick identity \\
+$\sum_{i=r}^{n}\binom{i}{r} = \binom{n+1}{r+1}$
+\end{itemize}
+
+
+\subsection{Burnside's Lema}
+$\#orbitas = \frac{1}{|G|}\sum_{g \in G}|fix(g)|$
+
+\begin{enumerate}
+    \item \textbf{G}: Las acciones que se pueden aplicar sobre un elemento, incluyendo la identidad, eg. Shift 0 veces, Shift 1 veces...
+    \item \textbf{Fix(g)}: Es el número de elementos que al aplicar $g$ vuelven a ser ser ellos mismos
+    \item \textbf{Órbita}: El conjunto de elementos que pueden ser iguales entre si al aplicar alguna de las acciones de $G$
+\end{enumerate}
+
+\subsection{DP Optimizations Theorems}
+\begin{tabular}{|p{0.8cm}| p{4.5cm}| p{3.3cm}|p{0.9cm}| p{1.3cm}|}
+	\hline
+	Name & Original Recurrence & Sufficient Condition &  &  \\ 
+	\hline
+	CH 1 & $dp[i] = min_{j<i}\{dp[j] + b[j] * a[i]\}$ & $b[j] \geq b[j+1]$Optionally $a[i] \leq a[i+1]$ & $O(n^2)$ & $O(n)$ \\ 
+	\hline
+	CH 2 & $dp[i][j] = min_{k<j}\{dp[i-1][k] + b[k] * a[j]\}$ & $b[k] \geq b[k+1]$ Optionally $a[j] \leq a[j+1]$ & $O(kn^2)$ & $O(kn)$ \\ 
+	\hline
+	D\&Q & $dp[i][j] = min_{k<j}\{dp[i-1][k] + C[k][j]\}$ & $A[i][j] \leq A[i][j+1]$ & $O(kn^2)$ & $O(kn\log n)$ \\ 
+	\hline
+	Knuth & $dp[i][j] = min_{i<k<j}\{dp[i][k] + dp[k][j]\} + C[i][j]$ & $A[i, j -1] \leq A[i, j] \leq A[i+1, j]$ & $O(n^3)$ & $O(n^2)$ \\ 
+	\hline
+\end{tabular} 
+
+Notes:
+
+\begin{itemize}
+	\item $A[i][j]$ - the smallest k that gives the optimal answer, for example in $dp[i][j] = dp[i-1][k] + C[k][j]$
+	\item $C[i][j]$ - some given cost function
+	\item We can generalize a bit in the following way $dp[i] = \min_{j<i}\{F[j]+b[j] * a[i]\}$, where $F[j]$ is computed from $dp[j]$ in constant time
+\end{itemize}
+
+
+\subsection{2-SAT Rules}
+
+\begin{itemize}
+	\item $ p \rightarrow q \equiv \lnot p \lor q$
+	\item $ p \rightarrow q \equiv \lnot q \rightarrow \lnot p$
+	\item $ p \lor q \equiv \lnot p \rightarrow q$
+	\item $ p \land q \equiv \lnot (p \rightarrow \lnot q)$
+	\item $ \lnot (p \rightarrow q) \equiv p \land \lnot q$
+	\item $ (p \rightarrow q) \land (p \rightarrow r) \equiv p \rightarrow (q \land r)$
+	\item $ (p \rightarrow q) \lor (p \rightarrow r) \equiv p \rightarrow (q \lor r)$
+	\item $ (p \rightarrow r) \land (q \rightarrow r) \equiv (p \land q) \rightarrow r$
+	\item $ (p \rightarrow r) \lor (q \rightarrow r) \equiv (p \lor q) \rightarrow r$
+	\item $(p \land q) \lor (r \land s) \equiv (p \lor r) \land (p \lor s) \land (q \lor r) \land (q \lor s)$
+\end{itemize}
+
+
+\subsection{Great circle distance or geographical distance}
+Great circle distance or geographical distance
+\begin{itemize}
+\item $d$ = great distance, $\phi$ = latitude, $\lambda$ = longitude, $\Delta$ = difference (all the values in radians)
+\item $\sigma$ = central angle, angle form for the two vector
+\item $d = r * \sigma$, $\sigma = 2 * \arcsin(\sqrt{\sin^2(\frac{\Delta\phi}{2}) + \cos(\phi_1)\cos(\phi_2)\sin^2(\frac{\Delta\lambda}{2})})$
+\end{itemize}
+
+
+\subsection{Heron's Formula}
+\begin{itemize}
+\item $s = \frac{a+b+c}{2}$
+\item $Area = \sqrt{s(s-a)(s-b)(s-c)}$
+\item $a, b, c$ there are the lenghts of the sides
+\end{itemize}
+
+
+\subsection{Interesting theorems}
+\begin{itemize}
+\item $a^{d} \equiv a^{d \mod \phi(n)} \mod n$ \\
+      if $a \in \mathbb{Z}^{n_{*}}$ or $a \notin \mathbb{Z}^{n_{*}}$ and $d \mod \phi(n) \neq 0$
+\item $a^{d} \equiv a^{\phi(n)} \mod n$ \\
+      if $a \notin \mathbb{Z}^{n_{*}}$ and $d \mod \phi(n) = 0$
+\item thus, for all $a, n$ and $d$ (with $d \geq \log_2(n)$) \\
+      $a^{d} \equiv a^{\phi(n) + d \mod \phi(n)} \mod n$
+\end{itemize}
+
+
+\subsection{Law of sines and cosines}
+\begin{itemize}
+\item $a, b, c$: lenghts, $A, B, C$: opposite angles, $d$: circumcircle
+\item $\frac{a}{sin(A)} = \frac{b}{sin(B)} = \frac{c}{sin(C)} = d$
+\item $c^2 = a^2 + b^2 - 2ab\cos(C)$
+\end{itemize}
+
+
+\subsection{Pythagorean triples (a^2+ b^2=c^2)}
+\begin{itemize}
+\item Given an arbitrary pair of integers $m$ and $n$ with $m > n > 0$:\\
+$a = m^2 - n^2$, $b = 2mn$, $c = m^2 + n^2$
+\item The triple generated by Euclid's formula is primitive if and only if $m$ and $n$ are coprime and not both odd.
+\item To generate all Pythagorean triples uniquely:\\
+$a = k (m^2 - n^2)$, $b = k(2mn)$, $c = k(m^2 + n^2)$
+\item If $m$ and $n$ are two odd integer such that $m > n$, then:\\
+$a = mn$, $b = \frac{m^2 - n^2}{2}$, $c = \frac{m^2 + n^2}{2}$
+\item If $n=1$ or $2$ there are no solutions. Otherwise\\
+$n$ is even: ($(\frac{n^2}{4} - 1)^2 + n^2 = (\frac{n^2}{4} + 1)^2$)\\
+$n$ is odd: ($(\frac{n^2 - 1}{2})^2 + n^2 = (\frac{n^2 + 1}{2})^2$)
+\end{itemize}
+
+
+\subsection{Sequences}
+Listado de secuencias mas comunes y como hallarlas.
+
+\begin{center}
+\tablefirsthead{}
+\tabletail{
+\midrule 
+\multicolumn{2}{r}{{Continúa en la siguiente columna}} \\}
+\tablelasttail{}
+{\renewcommand{\arraystretch}{1.4}
+\begin{supertabular}{|p{1.8cm}|p{8.6cm}|}
+
+\hline
+
+\multirow{2}{2cm}{Estrellas octangulares}
+& 	0, 1, 14, 51, 124, 245, 426, 679, 1016, 1449, 1990, 2651, ...
+\\ \cline{2-2}
+& $f(n) = n*(2*n^{2} - 1)$.
+\\ \hline
+
+
+\multirow{2}{2cm}
+{Euler totient}    
+& 1, 1, 2, 2, 4, 2, 6, 4, 6, 4, 10, 4, 12, 6,...            
+\\ \cline{2-2} 
+& $f(n) = $ Cantidad de números naturales $\leq n$ coprimos con n. 
+\\ \hline
+
+\multirow{2}{2cm}{Números de Bell} 
+& 1, 1, 2, 5, 15, 52, 203, 877, 4140, 21147, 115975, ...
+\\ \cline{2-2} 
+& Se inicia una matriz triangular con f[0][0] = f[1][0] = 1. La suma de estos dos se guarda en f[1][1] y se traslada a f[2][0]. Ahora se suman f[1][0] con f[2][0] y se guarda en f[2][1]. Luego se suman f[1][1] con f[2][1] y se guarda en f[2][2] trasladandose a f[3][0] y así sucesivamente. Los valores de la primera columna contienen la respuesta.
+\\ \hline
+
+
+\multirow{2}{2cm}
+{Números de Catalán} 
+& 1, 1, 2, 5, 14, 42, 132, 429, 1430, 4862, 16796, 58786, ...
+\\ \cline{2-2}
+& $f(n)=\displaystyle\frac{(2n)!}{(n + 1)! n!}$
+
+\\ \hline
+
+\multirow{2}{2cm}{Números de Fermat}
+& 3, 5, 17, 257, 65537, 4294967297, 18446744073709551617, ...
+\\ \cline{2-2}
+& $f(n) = 2^{(\displaystyle2^{\textstyle n})} + 1$
+\\ \hline
+
+
+\multirow{2}{2cm}
+{Números de Fibonacci} 
+& 0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, ...    
+\\ \cline{2-2} 
+& $f(0) = 0$; $f(1) = 1$; $f(n) = f(n-1) + f(n-2)$ para $n>1$             \\ \hline
+
+\multirow{2}{2cm}
+{Números de Lucas} 
+& 2, 1, 3, 4, 7, 11, 18, 29, 47, 76, 123, 199, 322, ...    
+\\ \cline{2-2} 
+& $f(0) = 2$; $f(1) = 1$; $f(n) = f(n-1) + f(n-2)$ para $n>1$            
+\\ \hline
+
+\multirow{2}{2cm}{Números de Pell} 
+& 0, 1, 2, 5, 12, 29, 70, 169, 408, 985, 2378, 5741, 13860, ...
+\\ \cline{2-2} 
+& $f(0) = 0; f(1) = 1; f(n) = 2f(n-1) + f(n-2)$ para $n>1$
+\\ \hline
+
+\multirow{2}{2cm}
+{Números de Tribonacci} 
+& 0, 0, 1, 1, 2, 4, 7, 13, 24, 44, 81, 149, 274, 504, ...    
+\\ \cline{2-2} 
+& $f(0)=f(1)=0; f(2)=1; f(n) = f(n-1) + f(n-2) + f(n-3)$ para $n>2$
+\\ \hline
+
+\multirow{2}{2cm}{Números factoriales}
+& 1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, ...
+\\ \cline{2-2}
+&$ f(0) = 1; f(n) = \displaystyle\prod_{\textstyle k=1}^{\textstyle n}k$ para $n>0$.
+
+\\ \hline
+
+\multirow{2}{2cm}{Números piramidales cuadrados}
+& 0, 1, 5, 14, 30, 55, 91, 140, 204, 285, 385, 506, 650, ...
+\\ \cline{2-2}
+& $f(n) = \displaystyle\frac{n*(n+1)*(2*n+1)}{6}$
+
+\\ \hline
+
+\multirow{2}{2cm}{Números primos de Mersenne}
+& 3, 7, 31, 127, 8191, 131071, 524287, 2147483647, ...
+\\ \cline{2-2}
+& $f(n) = 2^{p(n)} - 1$ donde $p$ representa valores primos iniciando en $p(0)=2$.
+\\ \hline
+
+
+\multirow{2}{2cm}{Números tetraedrales}
+& 1, 4, 10, 20, 35, 56, 84, 120, 165, 220, 286, 364, 455,  ...
+\\ \cline{2-2}
+& $f(n) = \displaystyle\frac{n*(n+1)*(n+2)}{6}$
+
+\\ \hline
+
+
+\multirow{2}{2cm}{Números triangulares}
+& 0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 66, 78, 91, 105, ...
+\\ \cline{2-2}
+& $f(n) = \displaystyle\frac{n(n+1)}{2}$
+
+\\ \hline
+
+
+\multirow{2}{2cm}{OEIS A000127}
+& 1, 2, 4, 8, 16, 31, 57, 99, 163, 256, 386, 562, ...
+\\ \cline{2-2}
+& $f(n) = \displaystyle\frac{(n^{4}-6n^{3}+23n^{2}-18{n}+24)}{24}$.
+
+\\ \hline
+
+
+\multirow{2}{2cm}{Secuencia de Narayana}
+& 1, 1, 1, 2, 3, 4, 6, 9, 13, 19, 28, 41, 60, 88, 129, ...
+\\ \cline{2-2}
+& $f(0) = f(1) = f(2) = 1; f(n) = f(n-1) + f(n-3)$ para todo $n>2$.
+\\ \hline
+
+
+\multirow{2}{2cm}
+{Secuencia de Silvestre} 
+& 2, 3, 7, 43, 1807, 3263443, 10650056950807, ...    
+\\ \cline{2-2} 
+& $f(0) = 2; f(n+1) = f(n)^2 - f(n) + 1$               
+\\ \hline
+
+\multirow{2}{2cm}{Secuencia de vendedor perezoso} 
+& 1, 2, 4, 7, 11, 16, 22, 29, 37, 46, 56, 67, 79, 92, 106, ...
+\\ \cline{2-2} 
+& Equivale al triangular(n) + 1. Máxima número de piezas que se pueden formar al hacer n cortes a un disco. 
+
+$f(n) = \displaystyle\frac{n(n+1)}{2} + 1$
+
+\\ \hline
+
+\multirow{2}{2cm}{Suma de los divisores de un número}
+& 1, 3, 4, 7, 6, 12, 8, 15, 13, 18, 12, 28, 14, 24, ...
+\\ \cline{2-2}
+&Para todo $n>1$ cuya descomposición en factores primos es $n=\displaystyle p_{1}^{\textstyle a_{1}}\displaystyle p_{2}^{\textstyle a_{2}}...\displaystyle p_{k}^{\textstyle a_{k}}$ se tiene que:
+
+
+$f(n) = \displaystyle\frac{p_{1}^{a_{1} + 1} - 1}{p_{1} - 1} * \frac{p_{2}^{a_{2} + 1} - 1}{p_{2} - 1} * ... * \frac{p_{k}^{a_{k} + 1} - 1}{p_{k} - 1}$ 
+
+\\ \hline
+\end{supertabular}
+}
+\end{center}
+
+
+\subsection{Simplex Rules}
+The simplex algorithm operated on linear programs in standard form:\\
+\textbf{Maximixe} : $c^{T} \cdot x$\\
+\textbf{Subject to} : $Ax \leq b, x_i \geq 0$
+\begin{itemize} 
+\item $x = (x_1,...,x_n)$ the variables of the problem
+\item $c = (c_1,...,c_n)$ are the coefficients of the objective function
+\item $A$ is a $p \times n$ matrix and $b = (b_1,..., b_p)$ constants with $b_j \geq 0$
+\end{itemize}
 
 \end{document}
