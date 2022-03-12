@@ -39,7 +39,7 @@ struct segtree_lazy {
     //         sum = op(left->sum, right->sum);
     //     }
     // }
-    void modify(int a, int b, int v) {
+    void modify(int a, int b, int64 v) {
         propagate();
         if(a > r || b < l) return;
         if(a <= l && r <= b) {

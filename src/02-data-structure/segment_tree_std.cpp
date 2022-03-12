@@ -13,7 +13,7 @@ struct segtree {
             right = new segtree(m+1, r);
         }
     }
-    void modify(int pos, int v) {
+    void modify(int pos, int64 v) {
         if(l == r) {
             sum = v;
         } else {
