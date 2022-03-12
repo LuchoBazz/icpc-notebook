@@ -17,6 +17,7 @@ void dfs(int node, int parent) { // O(n*lg^2(n))
         if(cnt[child].size() > cnt[node].size())
             swap(cnt[child], cnt[node]); // O(1)
 
+        // Merge
         for(auto &it: cnt[child]) {
             cnt[node].insert(it);
         }
