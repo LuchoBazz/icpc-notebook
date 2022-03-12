@@ -432,7 +432,7 @@ struct segtree_lazy {
             lazy = 0;
         }
     }
-    // void modify(int pos, int v) {
+    // void modify(int pos, int64 v) {
     //     if(l == r) {
     //         sum = v;
     //     } else {
@@ -441,7 +441,7 @@ struct segtree_lazy {
     //         sum = op(left->sum, right->sum);
     //     }
     // }
-    void modify(int a, int b, int v) {
+    void modify(int a, int b, int64 v) {
         propagate();
         if(a > r || b < l) return;
         if(a <= l && r <= b) {
@@ -480,7 +480,7 @@ struct segtree {
             right = new segtree(m+1, r);
         }
     }
-    void modify(int pos, int v) {
+    void modify(int pos, int64 v) {
         if(l == r) {
             sum = v;
         } else {
