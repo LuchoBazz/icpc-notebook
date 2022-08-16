@@ -33,6 +33,9 @@ inline void unique(vector<T> &v) {
 #define infinity while(1)
 #define unreachable assert(false && "Unreachable");
 
+#pragma GCC optimize("O3,unroll-loops")
+#pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt")
+
 // THINGS TO KEEP IN MIND
 //   * int overflow, time and memory limits
 //   * Special case (n = 1?)
