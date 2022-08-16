@@ -29,3 +29,27 @@ public:
         return SA-SB-SC+SD;
     }
 };
+
+// Prefix Sum Immutable 2D - Shorter code
+const int N = 102;
+const int M = 102;
+const int inf = 1e9;
+
+int n;
+int a[N][M];
+int sum[N][M];
+
+int query(int x1, int z1, int x2, int z2){
+    return sum[x2][z2] + sum[x1-1][z1-1] - sum[x1-1][z2] - sum[x2][z1-1];
+}
+
+// initialization / at main()
+
+for(int i = 1; i <= n; ++i) {
+    for(int j = 1; j <= m; ++j) {
+        cin >> a[i-1][j-1]; // 0-Indexed
+        sum[i][j] = sum[i-1][j] + sum[i][j-1] - sum[i-1][j-1] + a[i-1][j-1];
+    }
+}
+
+// query(x1, z1, x2, z2)
