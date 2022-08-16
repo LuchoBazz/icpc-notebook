@@ -1,14 +1,21 @@
-template<typename T>
-vector<T> bellman_ford(const undigraph<T> &G, int source, bool &cycle) {
-    assert(0 <= source && source < G.n);
-    T inf = static_cast<T>(numeric_limits<T>::max() >> 1);
-    vector<T> dist(G.n, inf);
-    dist[source] = static_cast<T>(0);
-    for(int i = 0; i < G.n + 1; ++i){
-        for(const edge<T> &e: G.edges) {
+struct edge {
+    int from, to;
+    int64 cost;
+};
+
+int n, m;
+const int N = 2505;
+const int64 inf = 1e18;
+vector<edge> edges;
+
+vector<int64> bellman_ford(int u, bool &cycle) {
+    vector<int64> dist(n, inf);
+    dist[u] = 0LL;
+    for(int i = 0; i < n + 1; ++i){
+        for(const edge &e: edges) {
             if(dist[e.from] != inf && dist[e.from] + e.cost < dist[e.to]) {
                 dist[e.to] = dist[e.from] + e.cost;
-                if(i == G.n)
+                if(i == n)
                     cycle = true; // There are negative edges
             }
         }
