@@ -80,12 +80,14 @@ const int d8x[8] = {-1, 0, -1, 1, -1, 1, 0, 1};
 const int d8y[8] = {-1, -1, 0, -1, 1, 0, 1, 1};
 
 #define endl '\n'
+#define _ << ' ' <<
+#define PB push_back
+#define SZ(v) ((int) v.size())
+#define trav(ref, ds) for(auto &ref: ds)
 #define forn(i, b) for(int i = 0; i < int(b); ++i)
 #define forr(i, b) for(int i = int(b)-1; i >= 0; i--)
 #define rep(i, a, b) for(int i = int(a); i <= int(b); ++i)
 #define rev(i, b, a) for(int i = int(b); i >= int(a); i--)
-#define trav(ref, ds) for(auto &ref: ds)
-#define sz(v) ((int) v.size())
 
 #define precise(n,k) fixed << setprecision(k) << n
 
@@ -101,6 +103,9 @@ inline void unique(vector<T> &v) {
 
 #define infinity while(1)
 #define unreachable assert(false && "Unreachable");
+
+#pragma GCC optimize("O3,unroll-loops")
+#pragma GCC target("avx2,bmi,bmi2,lzcnt,popcnt")
 
 // THINGS TO KEEP IN MIND
 //   * int overflow, time and memory limits
@@ -150,11 +155,36 @@ vector<string> split(string str, string separator) {
     return tokens;
 }
 
+template<class X>
+struct getId {
+	map<X, int> ids;
+	int operator[](const X &x) {
+		auto &v = ids[x];
+		if(v == 0) v = (int) ids.size();
+		return v;
+	}
+	int size() { return (int) ids.size(); }
+};
+// Usage: getId<int> ids;
+
 // Python Read
 from sys import stdin, stdout
 list(map(func, stdin.readline().strip().split()))
 \end{lstlisting}
 
+\subsection{Stress Testing Script}
+\begin{lstlisting}
+# A and B are executables you want to compare, gen takes int
+# as command line arg. Usage: 'sh stress.sh'
+for ((i = 1; ; ++i)); do  # if they are same then will loop forever
+    echo $i
+    ./gen $i > int
+    ./A < int > out1
+    ./B < int > out2
+    diff -w out1 out2 || break
+    # diff -w <(./A < int) <(./B < int) || break
+done
+\end{lstlisting}
 
 % STD LIBRARY
 
@@ -372,6 +402,30 @@ public:
         return SA-SB-SC+SD;
     }
 };
+
+// Prefix Sum Immutable 2D - Shorter code
+const int N = 102;
+const int M = 102;
+const int inf = 1e9;
+
+int n;
+int a[N][M];
+int sum[N][M];
+
+int query(int x1, int z1, int x2, int z2){
+    return sum[x2][z2] + sum[x1-1][z1-1] - sum[x1-1][z2] - sum[x2][z1-1];
+}
+
+// initialization / at main()
+
+for(int i = 1; i <= n; ++i) {
+    for(int j = 1; j <= m; ++j) {
+        cin >> a[i-1][j-1]; // 0-Indexed
+        sum[i][j] = sum[i-1][j] + sum[i][j-1] - sum[i-1][j-1] + a[i-1][j-1];
+    }
+}
+
+// query(x1, z1, x2, z2)
 \end{lstlisting}
 
 \subsection{Prefix Sum}
@@ -432,7 +486,7 @@ struct segtree_lazy {
             lazy = 0;
         }
     }
-    // void modify(int pos, int64 v) {
+    // void modify(int pos, int v) {
     //     if(l == r) {
     //         sum = v;
     //     } else {
@@ -505,29 +559,19 @@ struct segtree {
 
 \subsection{Sparse Table}
 \begin{lstlisting}
-template<typename T>
-class SparseTable {
-public:
-    int n;
-    vector<vector<T>> table;
-
-    SparseTable(const vector<T>& v) {
-        n = (int) v.size();
-        int max_log = 32 - __builtin_clz(n);
-        table.resize(max_log);
-        table[0] = v;
-        for (int j = 1; j < max_log; j++) {
-            table[j].resize(n - (1 << j) + 1);
-            for (int i = 0; i <= n - (1 << j); i++) {
-                table[j][i] = min(table[j - 1][i], table[j - 1][i + (1 << (j - 1))]);
-            }
-        }
+struct RMQ {
+    vector<vector<int>> table;
+    RMQ(vector<int> &v) : table(20, vector<int>(v.size())) {
+        int n = v.size();
+        for (int i = 0; i < n; i++)
+            table[0][i] = v[i];
+        for (int j = 1; (1<<j) <= n; j++)
+            for (int i = 0; i + (1<<(j-1)) < n; i++)
+                table[j][i] = min(table[j-1][i], table[j-1][i + (1<<(j-1))]);
     }
-
-    T query(int from, int to) const {
-        assert(0 <= from && from <= to && to <= n - 1);
-        int lg = 32 - __builtin_clz(to - from + 1) - 1;
-        return min(table[lg][from], table[lg][to - (1 << lg) + 1]);
+    int query(int a, int b) {
+        int j = 31 - __builtin_clz(b-a+1);
+        return min(table[j][a], table[j][b-(1<<j)+1]);
     }
 };
 \end{lstlisting}
@@ -594,6 +638,7 @@ void dfs(int node, int parent = -1) {
             low[node] = min(low[node], order[neighbour]);
         }
     }
+    
     // Conditions #2
     if(parent == -1 && children > 1) {
         points[node] = true;
@@ -613,17 +658,24 @@ vector<int> build() {
 
 \subsection{Bellman Ford}
 \begin{lstlisting}
-template<typename T>
-vector<T> bellman_ford(const undigraph<T> &G, int source, bool &cycle) {
-    assert(0 <= source && source < G.n);
-    T inf = static_cast<T>(numeric_limits<T>::max() >> 1);
-    vector<T> dist(G.n, inf);
-    dist[source] = static_cast<T>(0);
-    for(int i = 0; i < G.n + 1; ++i){
-        for(const edge<T> &e: G.edges) {
+struct edge {
+    int from, to;
+    int64 cost;
+};
+
+int n, m;
+const int N = 2505;
+const int64 inf = 1e18;
+vector<edge> edges;
+
+vector<int64> bellman_ford(int u, bool &cycle) {
+    vector<int64> dist(n, inf);
+    dist[u] = 0LL;
+    for(int i = 0; i < n + 1; ++i){
+        for(const edge &e: edges) {
             if(dist[e.from] != inf && dist[e.from] + e.cost < dist[e.to]) {
                 dist[e.to] = dist[e.from] + e.cost;
-                if(i == G.n)
+                if(i == n)
                     cycle = true; // There are negative edges
             }
         }
@@ -631,6 +683,11 @@ vector<T> bellman_ford(const undigraph<T> &G, int source, bool &cycle) {
     return dist;
     // Time Complexity: O(V*E), Space Complexity: O(V)
 }
+
+// cin >> l >> r >> cost, --l, --r;
+// edges.push_back({l, r, cost});
+// bool cycle = false;
+// vector<int64> dist = bellman_ford(0, cycle);
 \end{lstlisting}
 
 \subsection{BFS}
@@ -666,6 +723,69 @@ void init() {
         adj[i].clear();
     }
 }
+\end{lstlisting}
+
+
+\subsection{Binary Lifting}
+\begin{lstlisting}
+const int mxN = 2e5 + 10;
+const int LOG = 20;
+
+vector<int> adj[mxN];
+int up[mxN][LOG];
+int tin[mxN];
+int tout[mxN];
+int depth[mxN];
+int timer = 0;
+
+void lifting(int node, int parent) {
+    tin[node] = ++timer;
+    up[node][0] = parent;
+    for(int i = 1; i < LOG; ++i) {
+        up[node][i] = up[ up[node][i-1] ][i-1];
+        // up[node][i] = up[max(0, up[node][i-1])][i-1]; // to use the jump(node, k) function
+    }
+    for(auto &child: adj[node]) {
+        if(child == parent) continue;
+        depth[child] = depth[node] + 1;
+        lifting(child, node);
+    }
+    tout[node] = ++timer;
+}
+
+bool is_ancestor(int left, int right) {
+    return tin[left] <= tin[right] && tout[left] >= tout[right];
+}
+
+int lca(int left, int right) {
+    if(is_ancestor(left, right)) {
+        return left;
+    } else if(is_ancestor(right, left)) {
+        return right;
+    }
+    for(int i = LOG-1; i >= 0; i--) {
+        if(!is_ancestor(up[left][i], right)) {
+            left = up[left][i];
+        }
+    }
+    return up[left][0];
+}
+
+// jump k levels up in the tree
+int jump(int node, int k) {
+    for(int i = 0; i < LOG; ++i) {
+        if((k >> i) & 1 && node != -1) {
+            node = up[node][i];
+        }
+    }
+    return node;
+}
+
+// distance between 2 nodes -> O(lg(n))
+// depth[left] + depth[right] − 2*depth[ lca(left, right) ]
+
+// lifting(0, -1); to use the jump(node, k) function
+// lifting(0, 0); to use the lca(left, right) function
 \end{lstlisting}
 
 \subsection{Bridges}
@@ -714,33 +834,33 @@ vector<pair<int, int>> build() {
 // Dado un grafo con pesos no negativos halla la ruta de costo minimo entre un nodo inicial u y todos los demas nodos.
 
 struct edge {
-    int v; int64 w;
-    bool operator < (const edge &o) const {
-        return o.w < w; // invertidos para que la pq ordene de < a >
+    int v; int64 cost;
+    bool operator < (const edge &other) const {
+        return other.cost < cost;
     }
 };
 
 const int64 inf = 1e18;
-const int MX = 1e5+5; // Cantidad maxima de nodos
-vector<edge> g[MX]; // Lista de adyacencia
-vector<bool> was; // Marca los nodos ya visitados
-vector<int64> dist; // Almacena la distancia a cada nodo
-int pre[MX]; // Almacena el nodo anterior para construir las rutas
-int n, m; // Cantidad de nodos y aristas
+const int N = 1e5+5; // Cantidad maxima de nodos
+vector<edge> adj[N]; // Lista de adyacencia
+bool was[N];         // Marca los nodos ya visitados
+int64 dist[N];       // Almacena la distancia a cada nodo
+int pre[N];          // Almacena el nodo anterior para construir las rutas
+int n, m;            // Cantidad de nodos y aristas
 
 void dijkstra(int u) {
     priority_queue<edge> Q;
     Q.push({u, 0});
     dist[u] = 0;
     
-    while (Q.size()) {
+    while (!Q.empty()) {
         u = Q.top().v; Q.pop();
         if (!was[u]) {
             was[u] = true;
-            for (auto &ed : g[u]) {
+            for (auto &ed : adj[u]) {
                 int v = ed.v;
-                if (!was[v] && dist[v] > dist[u] + ed.w) {
-                    dist[v] = dist[u] + ed.w;
+                if (!was[v] && dist[v] > dist[u] + ed.cost) {
+                    dist[v] = dist[u] + ed.cost;
                     pre[v] = u;
                     Q.push({v, dist[v]});
                 }
@@ -750,10 +870,11 @@ void dijkstra(int u) {
 }
 
 void init() {
-    was.assign(n, false);
-    dist.assign(n, inf);
-    for (int i = 0; i <= n; i++)
-        g[i].clear();
+    for (int i = 0; i <= n; i++) {
+        adj[i].clear();
+        was[i] = 0;
+        dist[i] = inf;
+    }
 }
 \end{lstlisting}
 
@@ -783,64 +904,41 @@ for(int k = 0; k < n; ++k) {
 // answer: dp[from][to]
 \end{lstlisting}
 
+\subsection{Merge Trick on Trees}
+\begin{lstlisting}
+// Reference: https://usaco.guide/plat/merging?lang=cpp
+const int mxN = 2e5 + 10;
+vector<int> adj[mxN];
+int colors[mxN];
+set<int> cnt[mxN];
+int answer[mxN];
+ 
+void dfs(int node, int parent) { // O(n*lg^2(n))
+    cnt[node].insert(colors[node]);
+ 
+    for(auto &child: adj[node]) {
+        if(child == parent) continue;
+
+        dfs(child, node);
+
+        // always make the child set the smallest
+        if(cnt[child].size() > cnt[node].size())
+            swap(cnt[child], cnt[node]); // O(1)
+
+        // Merge
+        for(auto &it: cnt[child]) {
+            cnt[node].insert(it);
+        }
+        cnt[child].clear(); // if time is too high don't use, only use when giving MLE
+    }
+    answer[node] = (int) cnt[node].size();
+}
+// dfs(0, -1)
+\end{lstlisting}
+
 \subsection{Kahn Algoritm}
 \begin{lstlisting}
-class KahnTopoSort {
-    vector<vector<int>> adj;
-    vector<int> indegree;
-    vector<int> toposort;
-    int nodes;
-    bool solved;
-    bool isCyclic;
-public:
-    
-    KahnTopoSort(int n) : nodes(n) {
-        adj.resize(n);
-        indegree.resize(n, 0);
-        solved = false;
-        isCyclic = false;
-    }
-    
-    void addEdge(int from, int to) {
-        adj[from].push_back(to);
-        indegree[to]++;
-        solved = false;
-        isCyclic = false;
-    }
-    
-    vector<int> sort() {
-        if(solved) return toposort;
-        toposort.clear();
-        queue<int> Q;
-        vector<int> in_degree(indegree.begin(), indegree.end());
-        for(int i = 0; i < nodes; ++i) {
-            if(in_degree[i] == 0) Q.push(i);
-        }
-        int count = 0;
-        while(!Q.empty()) {
-            int node = Q.front(); Q.pop();
-            toposort.push_back(node);
-            for(int neighbour: adj[node]) {
-                in_degree[neighbour]--;
-                if(in_degree[neighbour] == 0) {
-                    Q.push(neighbour);
-                }
-            }
-            count++;
-        }
-        solved = true;
-        if(count != nodes) {
-            // There exists a cycle in the graph
-            isCyclic = true;
-            return vector<int> {};
-        }
-        return toposort;
-    }
-    bool getIsCyclic() {
-        sort();
-        return isCyclic;
-    }
-};
+
 \end{lstlisting}
 
 \subsection{SCC - Kasaraju}
@@ -941,6 +1039,67 @@ void init() {
 
 \subsection{Topological Sort}
 \begin{lstlisting}
+class KahnTopoSort {
+    vector<vector<int>> adj;
+    vector<int> indegree;
+    vector<int> toposort;
+    int nodes;
+    bool solved;
+    bool isCyclic;
+public:
+    
+    KahnTopoSort(int n) : nodes(n) {
+        adj.resize(n);
+        indegree.resize(n, 0);
+        solved = false;
+        isCyclic = false;
+    }
+    
+    void addEdge(int from, int to) {
+        adj[from].push_back(to);
+        indegree[to]++;
+        solved = false;
+        isCyclic = false;
+    }
+    
+    vector<int> sort() {
+        if(solved) return toposort;
+        toposort.clear();
+        queue<int> Q;
+        vector<int> in_degree(indegree.begin(), indegree.end());
+        for(int i = 0; i < nodes; ++i) {
+            if(in_degree[i] == 0) Q.push(i);
+        }
+        int count = 0;
+        while(!Q.empty()) {
+            int node = Q.front(); Q.pop();
+            toposort.push_back(node);
+            for(int neighbour: adj[node]) {
+                in_degree[neighbour]--;
+                if(in_degree[neighbour] == 0) {
+                    Q.push(neighbour);
+                }
+            }
+            count++;
+        }
+        solved = true;
+        if(count != nodes) {
+            // There exists a cycle in the graph
+            isCyclic = true;
+            return vector<int> {};
+        }
+        return toposort;
+    }
+
+    bool getIsCyclic() {
+        sort();
+        return isCyclic;
+    }
+};
+\end{lstlisting}
+
+\subsection{Topological Sort - Dfs}
+\begin{lstlisting}
 vector<vector<int>> adj;
 vector<bool> visited;
 vector<bool> onstack;
@@ -967,6 +1126,129 @@ void dfs(int node, bool &isCyclic) {
 }
 \end{lstlisting}
 
+\subsection{Tree Diameter}
+\begin{lstlisting}
+// const int mxN = 1e5;
+int dp[mxN];
+int dfs(int node, int parent) {
+    int mx = 0;
+    int first = 0, second=0;
+    for(int &child: adj[node]) {
+        if(child == parent) continue;
+        int factor = dfs(child, node) + 1;
+        mx = max(mx, factor);
+        if(factor >= first) {
+            second = first;
+            first = factor;
+        } else if(factor >= second) {
+            second = factor;
+        }
+    }
+    dp[node] = first + second;
+    return mx;
+}
+// n: number of nodes
+// dfs(0, 0);
+// int diameter = *max_element(dp, dp + n);
+\end{lstlisting}
+
+\subsection{Tree Difference Array Technique on Trees}
+\begin{lstlisting}
+int diff[mxN]; // Difference Array
+int answer[mxN]; // Array after propagation of differences
+
+void dfs(int node, int parent) {
+    answer[node] = diff[node];
+    for(int &child: adj[node]) {
+        if(child == parent) continue;
+        dfs(child, node);
+        answer[node] += answer[child];
+    }
+}
+
+// main()
+for(int i = 0; i < m; ++i) {
+    int l, r; cin >> l >> r, l--, r--;
+    int anc = lca(l, r);
+    diff[l]++;
+    diff[r]++;
+    diff[anc]--;
+    if(anc != 0)
+        diff[up[anc][0]]--;
+}
+
+dfs(0, -1);
+
+for(int i = 0; i < n; ++i) {
+    cout << answer[i] << " \n" [i == (n-1)];
+}
+
+//       [1] -1  -> parent of lca
+//       / \
+//     [2] [3] -1   -> lca
+//         / \
+//    +1 [4] [5] +1
+\end{lstlisting}
+
+\subsection{Tree Euler Tour}
+\begin{lstlisting}
+const int mxN = 2e5 + 10;
+vector<int> adj[mxN];
+int tour[2 * mxN]; // Euler Tour
+int timer = 0;
+
+void eulerTree(int node, int parent) {
+    tour[timer++] = node;
+    for(int &child: adj[node]) {
+        if(child == parent) continue;
+        eulerTree(child, node);
+        tour[timer++] = node;
+    }
+}
+
+//        1
+//       / \
+//      2   3
+//         / \
+//        4   5
+
+// for(int i = 0; i < 2*n-1; ++i) cout << tour[i] + 1 << " \n" [i == (2*n-2)];
+// Euler Tour: 1 2 1 3 4 3 5 3 1
+\end{lstlisting}
+
+
+\subsection{Tree Subtree Queries}
+\begin{lstlisting}
+const int mxN = 2e5 + 10;
+vector<int> adj[mxN];
+int n, q;
+
+int ids[mxN]; // Node ID
+// Subtree Range: [ids[node], tout[node]]
+int tout[mxN]; // useful for calculating the query range
+int sub[mxN]; // Subtree Size
+int values[mxN]; // Node Values
+int timer = 0;
+
+void dfs(int node, int parent) {
+    sub[node] = 1;
+    ids[node] = timer++;
+    for(int &child: adj[node]) {
+        if(child == parent) continue;
+        dfs(child, node);
+        sub[node] += sub[child];
+    }
+    tout[node] = timer - 1;
+}
+// Start the query structure
+//     forn(i, n) st.modify(ids[i], values[i]);
+// Update a tree Node
+//     st.modify(ids[idx], val);
+// query on the subtree of a node, including the node
+//     st.query(ids[node], tout[node])
+// Run dfs
+//     dfs(0, 0)
+\end{lstlisting}
 
 % STRING
 \section{String}
@@ -975,8 +1257,8 @@ void dfs(int node, bool &isCyclic) {
 \begin{lstlisting}
 // Convierte el string en un polinomio, en O(n), tal que podemos comparar substrings como valores numericos en O(1).
 // Primero llamar calc_xpow() (una unica vez) con el largo maximo de los strings dados.
-
-using int64 = long long;
+// Primes: 1000234999, 1000567999, 1000111997, 1000777121, 1001864327, 1001265673
+using ll = long long;
 inline int add(int a, int b, const int &mod) { return a+b >= mod ? a+b-mod : a+b; }
 inline int sub(int a, int b, const int &mod) { return a-b < 0 ? a-b+mod : a-b; }
 inline int mul(int a, int b, const int &mod) { return 1LL*a*b % mod; }
@@ -998,10 +1280,10 @@ struct hashing {
         }
     }
     //Hash del substring en el rango [i, j)
-    int64 value(int l, int r) {
+    ll query(int l, int r) {
         int a = sub(h[0][r], mul(h[0][l], xpow[0][r-l], MOD[0]), MOD[0]);
         int b = sub(h[1][r], mul(h[1][l], xpow[1][r-l], MOD[1]), MOD[1]);
-        return (int64(a)<<32) + b;
+        return (ll(a)<<32) + b;
     }
 };
 
@@ -1013,6 +1295,11 @@ void calc_xpow(int mxlen) {
         }
     }
 }
+
+// Check palindrome: from - to
+// auto hash1 = hash.query(from, to);
+// auto hash2 = hash_reverse.query(n-to-1, n-from-1);
+// hash1 == hash2
 \end{lstlisting}
 
 
@@ -1095,7 +1382,6 @@ int minimum_expression(string s) {
 
 \subsection{Manacher}
 \begin{lstlisting}
-
 template <typename T>
 vector<int> manacher(const T &s) {
     int n = (int) s.size();
@@ -1461,8 +1747,8 @@ tuple<T, T, T> extgcd(T a, T b) {
 }
 // Usage:
 //   auto [g, x, y] = extgcd(a, b);
-// = Congruente
-// a*x = 1 (mod m) -> If and only if gcd(a, m) == 1
+
+// a*x ≡ 1 (mod m) -> If and only if gcd(a, m) == 1
 // a*x + m*y = 1
 
 // auto [g, x, y] = extgcd(a, m);
@@ -1505,7 +1791,7 @@ struct matrix {
         for (int i = 0; i < n; i++)
             for (int k = 0; k < m; k++) if (v[i][k])
                 for (int j = 0; j < o.m; j++)
-                    ans[i][j] = (1ll*v[i][k]*o.v[k][j] + ans[i][j]) % mod;
+                    ans[i][j] = (1LL * v[i][k] * o.v[k][j] + ans[i][j]) % mod;
         return ans;
     }
     
@@ -1586,6 +1872,51 @@ bool is_prime(T number) {
 }
 \end{lstlisting}
 
+\subsection{Primality Test Miller Rabin}
+\begin{lstlisting}
+// Reference: notebook_descomUNAL
+ll mul (ll a, ll b, ll mod) {
+    ll ret = 0;
+    for(a %= mod, b %= mod; b != 0;
+      b >>= 1, a <<= 1, a = a >= mod ? a - mod : a) {
+        if (b & 1) {
+            ret += a;
+            if (ret >= mod) ret -= mod;
+        }
+    }
+    return ret;
+}
+ll fpow (ll a, ll b, ll mod) {
+    ll ans = 1;
+    for (; b; b >>= 1, a = mul(a, a, mod))
+        if (b & 1)
+            ans = mul(ans, a, mod);
+    return ans;
+}
+bool witness (ll a, ll s, ll d, ll n) {
+    ll x = fpow(a, d, n);
+    if (x == 1 || x == n - 1) return false;
+    for (int i = 0; i < s - 1; i++) {
+        x = mul(x, x, n);
+        if (x == 1) return true;
+        if (x == n - 1) return false;
+    }
+    return true;
+}
+ll test[] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 0};
+bool is_prime (ll n) {
+    if (n < 2) return false;
+    if (n == 2) return true;
+    if (n % 2 == 0) return false;
+    ll d = n - 1, s = 0;
+    while (d % 2 == 0) ++s, d /= 2;
+    for (int i = 0; test[i] && test[i] < n; ++i)
+        if (witness(test[i], s, d, n))
+            return false;
+    return true;
+}
+\end{lstlisting}
+
 \subsection{Prime Factos}
 \begin{lstlisting}
 template<class T>
@@ -1625,6 +1956,31 @@ void sieve() {
         for (int64 j = 1LL * i*i; j <= mxN; j += i)
             marked[j] = true;
     }
+}
+\end{lstlisting}
+
+\subsection{Math Utils}
+\begin{lstlisting}
+#define PI   3.141592653589793238462643383279502884L // acos(-1);
+#define E    2.718281828459045235360287471352662497L
+#define eps  1e-9
+
+template<typename T>
+int cmp(const T &a, const T &b) {
+    return ( (a + eps < b)? -1 :( (b + eps < a )? 1 : 0) );
+}
+
+template<typename T>
+T ceiling_division(T numerator, T denominator) {
+    assert(denominator != static_cast<T>(0));
+    return (numerator+denominator-1)/denominator;
+}
+
+// How much does it need to add to n so that it is divisible by k
+template<typename T>
+T distance_divisible(T n, T k) {
+    assert(0 < k); if(n < k) return k - n % k;
+    return n % k;
 }
 \end{lstlisting}
 
@@ -1761,6 +2117,7 @@ int64 knapsack(vector<int64> &val, vector<int64> &wt, int item, int capacity) {
 
 \subsection{Longest Common Subsecuence}
 \begin{lstlisting}
+// Longest Common Subsecuence
 int lcs(string X, string Y, int m, int n) {
     if (m == 0 || n == 0) {
         return 0;
@@ -1936,6 +2293,9 @@ void merge_sort(vector<int> &v, int left, int right) {
 void merge_sort(vector<int> &v) {
     merge_sort(v, 0, (int) v.size() - 1);
 }
+// Usage:
+// Vector<int> A { ... };
+// merge_sort(A);
 \end{lstlisting}
 
 % TECHNIQUES
@@ -1988,7 +2348,7 @@ vector<Query> Q;
 Q.reserve(q+1);
 int from, to;
 for(int i = 0; i < q; ++i){
-    in >> from >> to; // don't forget (from--, to--) if it's 1-indexed
+    cin >> from >> to; // don't forget (from--, to--) if it's 1-indexed
     Q.push_back(Query(from, to, i));
 }
 
@@ -2369,181 +2729,354 @@ int hamming(const T &lhs, const T &rhs) {
 
 \section{Geometry}
 
-\subsection{Point Struct}
+\subsection{Geometry Template}
 \begin{lstlisting}
-typedef long double floating_t;
-
-template<typename T>
-struct Point {
-    T x;
-    T y;
-
-    Point<T> operator + (Point<T> p) { return {x+p.x, y+p.y};}
-    Point<T> operator - (Point<T> p) { return {x-p.x, y-p.y};}
-    Point<T> operator * (Point<T> p) { return {x*p.x-y*p.y, x*p.y+y*p.x};}
-    Point<T> operator * (T p) { return {x*p, y*p};}
-    Point<T> operator / (T p) { return {x/p, y/p};} // only for floating point
-    
-    bool operator == (const Point<T> &p) const { return x==p.x && y == p.y;}
-    bool operator != (const Point<T> &p) const { return !(*this == p);}
-    bool operator <  (const Point<T> &p) const { return x < p.x || (x == p.x && y < p.y);}
-    bool operator >  (const Point<T> &p) const { return x > p.x || (x == p.x && y > p.y);}
-    
-    // bool operator < (const Point<T> &p) const { return y<p.y || (y==p.y && x < p.x); }
-    // bool operator > (const Point<T> &p) const { return y>p.y || (y==p.y && x > p.x); }
-    
-    // Already in Complex
-    T norm() { return x*x + y*y;}
-    T norm(Point<T> p) { return abs(p.x-x)*abs(p.x-x) + abs(p.y-y)*abs(p.y-y);}
-    
-    floating_t arg()  { return atan2(y, x);}
-    T dot(Point<T> p) { return x*p.x + y*p.y; }
-    T cross(Point<T> p) { return x*p.y - y*p.x; }
-    T orient(Point<T> b, Point<T> c) { return (b-*this).cross(c-*this); }
-    
-    // Distances
-    // Euclidean Distance
-    floating_t eucl_dist()  { return sqrt(norm()); }
-    floating_t eucl_dist(Point<T> p)  { return sqrt(norm(p)); }
-    
-    // Manhattan Distance
-    T man_dist() { return abs(x) + abs(y);}
-    T man_dist(Point<T> p) { return abs(x-p.x) + abs(y-p.y);}
-    
-    // Chebyshev Distance
-    T ch_dist() { return max(abs(x), abs(y));}
-    T ch_dist(Point<T> p) { return max(abs(x-p.x), abs(y-p.y));}
+const lf eps = 1e-9;
+typedef double T;
+struct pt {
+  T x, y;
+  pt operator + (pt p) { return {x+p.x, y+p.y}; }
+  pt operator - (pt p) { return {x-p.x, y-p.y}; }
+  pt operator * (pt p) { return {x*p.x-y*p.y, x*p.y+y*p.x}; }
+  pt operator * (T d) { return {x*d, y*d}; }
+  pt operator / (lf d) { return {x/d, y/d}; } /// only for floating point
+  bool operator == (pt b) { return x == b.x && y == b.y; }
+  bool operator != (pt b) { return !(*this == b); }
+  bool operator < (const pt &o) const { return y < o.y || (y == o.y && x < o.x); }
+  bool operator > (const pt &o) const { return y > o.y || (y == o.y && x > o.x); }
 };
+int cmp (lf a, lf b) { return (a + eps < b ? -1 :(b + eps < a ? 1 : 0)); }
+/** Already in complex **/
+T norm(pt a) { return a.x*a.x + a.y*a.y; }
+lf abs(pt a) { return sqrt(norm(a)); }
+lf arg(pt a) { return atan2(a.y, a.x); }
+ostream& operator << (ostream& os, pt &p) {
+  return os << "("<< p.x << "," << p.y << ")";
+}
+/***/
+istream &operator >> (istream &in, pt &p) {
+    T x, y; in >> x >> y;
+    p = {x, y};
+    return in;
+}
+T dot(pt a, pt b) { return a.x*b.x + a.y*b.y; }
+T cross(pt a, pt b) { return a.x*b.y - a.y*b.x; }
+T orient(pt a, pt b, pt c) { return cross(b-a,c-a); }
+//pt rot(pt p, lf a) { return {p.x*cos(a) - p.y*sin(a), p.x*sin(a) + p.y*cos(a)}; }
+//pt rot(pt p, double a) { return p * polar(1.0, a); } /// for complex
+//pt rotate_to_b(pt a, pt b, lf ang) { return rot(a-b, ang)+b; }
+pt rot90ccw(pt p) { return {-p.y, p.x}; }
+pt rot90cw(pt p) { return {p.y, -p.x}; }
+pt translate(pt p, pt v) { return p+v; }
+pt scale(pt p, double f, pt c) { return c + (p-c)*f; }
+bool are_perp(pt v, pt w) { return dot(v,w) == 0; }
+int sign(T x) { return (T(0) < x) - (x < T(0)); }
+pt unit(pt a) { return a/abs(a); }
 
-template<typename T>
-struct hasher {
-    size_t operator()(const Point<T> &p) const { 
-        return hash<T>()(p.x) ^ hash<T>()(p.y);
-    }
-    // unordered_map<point<int>, int, hasher<int>> mp;
-};
-
-template<typename T>
-string to_string(Point<T> p) {
-    return "(" + to_string(p.x) + ", " + to_string(p.y) + ")";
+bool in_angle(pt a, pt b, pt c, pt x) {
+  assert(orient(a,b,c) != 0);
+  if (orient(a,b,c) < 0) swap(b,c);
+  return orient(a,b,x) >= 0 && orient(a,c,x) <= 0;
 }
 
-template<typename T>
-using point = Point<T>;
-\end{lstlisting}
+//lf angle(pt a, pt b) { return acos(max(-1.0, min(1.0, dot(a,b)/abs(a)/abs(b)))); }
+//lf angle(pt a, pt b) { return atan2(cross(a, b), dot(a, b)); }
+/// returns vector to transform points
+pt get_linear_transformation(pt p, pt q, pt r, pt fp, pt fq) {
+  pt pq = q-p, num{cross(pq, fq-fp), dot(pq, fq-fp)};
+  return fp + pt{cross(r-p, num), dot(r-p, num)} / norm(pq);
+}
 
-\subsection{Polygon}
-\begin{lstlisting}
-// 2d_geometry_point
+bool half(pt p) { /// true if is in (0, 180]
+  assert(p.x != 0 || p.y != 0); /// the argument of (0,0) is undefined
+  return p.y > 0 || (p.y == 0 && p.x < 0);
+}
+bool half_from(pt p, pt v = {1, 0}) {
+  return cross(v,p) < 0 || (cross(v,p) == 0 && dot(v,p) < 0);
+}
+bool polar_cmp(const pt &a, const pt &b) {
+  return make_tuple(half(a), 0) < make_tuple(half(b), cross(a,b));
+}
 
-template<typename T>
-class Polygon {
-    vector<Point<T>> points;
-public:
-    Polygon(){}
-    Polygon(int n) : points(n) {}
-    Polygon(vector<Point<T>> pts) : points(pts.begin(), pts.end()) {}
-    typename vector<Point<T>>::iterator begin() { return points.begin(); }
-    typename vector<Point<T>>::iterator end() { return points.end(); }
-    int size() { return (int) points.size(); }
-    Point<T>& operator [] (int i) { return points[i]; }
-    void add(Point<T> point) {
-        points.push_back(point);
-    }
-    void delete_repetead() {
-        // Time Complexity: O(N*log2(N))
-        vector<Point<T>> aux;
-        sort(points.begin(), points.end());
-        for(Point<T> &pt : points) {
-            if(aux.empty() || aux.back() != pt) {
-                aux.push_back(pt);
-            }
-        }
-        points.swap(aux);
-    }
+struct line {
+  pt v; T c;
+  line(pt v, T c) : v(v), c(c) {}
+  line(T a, T b, T c) : v({b,-a}), c(c) {}
+  line(pt p, pt q) : v(q-p), c(cross(v,p)) {}
+  T side(pt p) { return cross(v,p)-c; }
+  lf dist(pt p) { return abs(side(p)) / abs(v); }
+  lf sq_dist(pt p) { return side(p)*side(p) / (lf)norm(v); }
+  line perp_through(pt p) { return {p, p + rot90ccw(v)}; }
+  bool cmp_proj(pt p, pt q) { return dot(v,p) < dot(v,q); }
+  line translate(pt t) { return {v, c + cross(v,t)}; }
+  line shift_left(double d) { return {v, c + d*abs(v)}; }
+  pt proj(pt p) { return p - rot90ccw(v)*side(p)/norm(v); }
+  pt refl(pt p) { return p - rot90ccw(v)*2*side(p)/norm(v); }
 };
 
-template<typename T>
-string to_string(Polygon<T> p) {
-    vector<Point<T>> points(p.begin(), p.end());
-    return to_string(points);
+bool inter_ll(line l1, line l2, pt &out) {
+  T d = cross(l1.v, l2.v);
+  if (d == 0) return false;
+  out = (l2.v*l1.c - l1.v*l2.c) / d;
+  return true;
+}
+line bisector(line l1, line l2, bool interior) {
+  assert(cross(l1.v, l2.v) != 0); /// l1 and l2 cannot be parallel!
+  lf sign = interior ? 1 : -1;
+  return {l2.v/abs(l2.v) + l1.v/abs(l1.v) * sign,
+          l2.c/abs(l2.v) + l1.c/abs(l1.v) * sign};
 }
 
-template<typename T>
-using polygon = Polygon<T>;
-\end{lstlisting}
-
-\subsection{Area of a Polygon}
-\begin{lstlisting}
-// 2d_geometry_polygon
-
-template<typename T>
-floating_t area(Polygon<T> points, bool sign = false) {
-    int n = (int) points.size();
-    floating_t ans = 0.0;
-    for(int i = 0; i < n; ++i)
-        ans += points[i].cross(points[(i + 1) % n]);
-    ans /= 2.0;
-    // ans >= 0 (counter-clock wise): Sentido Antihorario
-    // ans < 0  (clockwise): Agujas del Reloj
-    return (!sign)? abs(ans):ans;
+bool in_disk(pt a, pt b, pt p) {
+  return dot(a-p, b-p) <= 0;
 }
-// Area of a Polygon
-// Time Complexity: O(N), Space Complexity: O(1)
-// N: Number of Points
-\end{lstlisting}
+bool on_segment(pt a, pt b, pt p) {
+  return orient(a,b,p) == 0 && in_disk(a,b,p);
+}
+bool proper_inter(pt a, pt b, pt c, pt d, pt &out) {
+  T oa = orient(c,d,a),
+  ob = orient(c,d,b),
+  oc = orient(a,b,c),
+  od = orient(a,b,d);
+  /// Proper intersection exists iff opposite signs
+  if (oa*ob < 0 && oc*od < 0) {
+    out = (a*ob - b*oa) / (ob-oa);
+    return true;
+  }
+  return false;
+}
+set<pt> inter_ss(pt a, pt b, pt c, pt d) {
+  pt out;
+  if (proper_inter(a,b,c,d,out)) return {out};
+  set<pt> s;
+  if (on_segment(c,d,a)) s.insert(a);
+  if (on_segment(c,d,b)) s.insert(b);
+  if (on_segment(a,b,c)) s.insert(c);
+  if (on_segment(a,b,d)) s.insert(d);
+  return s;
+}
+lf pt_to_seg(pt a, pt b, pt p) {
+  if(a != b) {
+    line l(a,b);
+    if (l.cmp_proj(a,p) && l.cmp_proj(p,b)) /// if closest to  projection
+      return l.dist(p); /// output distance to line
+  }
+  return min(abs(p-a), abs(p-b)); /// otherwise distance to A or B
+}
+lf seg_to_seg(pt a, pt b, pt c, pt d) {
+  pt dummy;
+  if (proper_inter(a,b,c,d,dummy)) return 0;
+  return min({pt_to_seg(a,b,c), pt_to_seg(a,b,d),
+              pt_to_seg(c,d,a), pt_to_seg(c,d,b)});
+}
 
-\subsection{Perimeter of a Polygon}
-\begin{lstlisting}
-// 2d_geometry_polygon
-
-template<typename T>
-floating_t perimeter(Polygon<T> points) {
-    int n = (int) points.size();
-    floating_t ans = 0.0;
-    for(int i = 0; i < n; ++i)
-        ans += points[i].eucl_dist(points[(i + 1) % n]);
+enum {IN, OUT, ON};
+struct polygon {
+  vector<pt> p;
+  polygon(int n) : p(n) {}
+  int top = -1, bottom = -1;
+  void delete_repetead() {
+    vector<pt> aux;
+    sort(p.begin(), p.end());
+    for(pt &i : p)
+      if(aux.empty() || aux.back() != i)
+        aux.push_back(i);
+    p.swap(aux);
+  }
+  bool is_convex() {
+    bool pos = 0, neg = 0;
+    for (int i = 0, n = p.size(); i < n; i++) {
+      int o = orient(p[i], p[(i+1)%n], p[(i+2)%n]);
+      if (o > 0) pos = 1;
+      if (o < 0) neg = 1;
+    }
+    return !(pos && neg);
+  }
+  lf area(bool s = false) {
+    lf ans = 0;
+    for (int i = 0, n = p.size(); i < n; i++)
+      ans += cross(p[i], p[(i+1)%n]);
+    ans /= 2;
+    return s ? ans : abs(ans);
+  }
+  lf perimeter() {
+    lf per = 0;
+    for(int i = 0, n = p.size(); i < n; i++)
+      per += abs(p[i] - p[(i+1)%n]);
+    return per;
+  }
+  bool above(pt a, pt p) { return p.y >= a.y; }
+  bool crosses_ray(pt a, pt p, pt q) {
+    return (above(a,q)-above(a,p))*orient(a,p,q) > 0;
+  }
+  int in_polygon(pt a) {
+    int crosses = 0;
+    for(int i = 0, n = p.size(); i < n; i++) {
+      if(on_segment(p[i], p[(i+1)%n], a)) return ON;
+      crosses += crosses_ray(a, p[i], p[(i+1)%n]);
+    }
+    return (crosses&1 ? IN : OUT);
+  }
+  void normalize() { /// polygon is CCW
+    bottom = min_element(p.begin(), p.end()) - p.begin();
+    vector<pt> tmp(p.begin()+bottom, p.end());
+    tmp.insert(tmp.end(), p.begin(), p.begin()+bottom);
+    p.swap(tmp);
+    bottom = 0;
+    top = max_element(p.begin(), p.end()) - p.begin();
+  }
+  int in_convex(pt a) {
+    assert(bottom == 0 && top != -1);
+    if(a < p[0] || a > p[top]) return OUT;
+    T orientation = orient(p[0], p[top], a);
+    if(orientation == 0) {
+      if(a == p[0] || a == p[top]) return ON;
+      return top == 1 || top + 1 == p.size() ? ON : IN;
+    } else if (orientation < 0) {
+      auto it = lower_bound(p.begin()+1, p.begin()+top, a);
+      T d = orient(*prev(it), a, *it);
+      return d < 0 ? IN : (d > 0 ? OUT: ON);
+    }
+    else {
+      auto it = upper_bound(p.rbegin(), p.rend()-top-1, a);
+      T d = orient(*it, a, it == p.rbegin() ? p[0] : *prev(it));
+      return d < 0 ? IN : (d > 0 ? OUT: ON);
+    }
+  }
+  polygon cut(pt a, pt b) {
+    line l(a, b);
+    polygon new_polygon(0);
+    for(int i = 0, n = p.size(); i < n; ++i) {
+      pt c = p[i], d = p[(i+1)%n];
+      lf abc = cross(b-a, c-a), abd = cross(b-a, d-a);
+      if(abc >= 0) new_polygon.p.push_back(c);
+      if(abc*abd < 0) {
+        pt out; inter_ll(l, line(c, d), out);
+        new_polygon.p.push_back(out);
+      }
+    }
+    return new_polygon;
+  }
+  void convex_hull() {
+    sort(p.begin(), p.end());
+    vector<pt> ch;
+    ch.reserve(p.size()+1);
+    for(int it = 0; it < 2; it++) {
+      int start = ch.size();
+      for(auto &a : p) {
+        /// if colineal are needed, use < and remove repeated points
+        while(ch.size() >= start+2 && orient(ch[ch.size()-2], ch.back(), a) <= 0)
+          ch.pop_back();
+        ch.push_back(a);
+      }
+      ch.pop_back();
+      reverse(p.begin(), p.end());
+    }
+    if(ch.size() == 2 && ch[0] == ch[1]) ch.pop_back();
+    /// be careful with CH of size < 3
+    p.swap(ch);
+  }
+  vector<pii> antipodal() {
+    vector<pii> ans;
+    int n = p.size();
+    if(n == 2) ans.push_back({0, 1});
+    if(n < 3) return ans;
+    auto nxt = [&](int x) { return (x+1 == n ? 0 : x+1); };
+    auto area2 = [&](pt a, pt b, pt c) { return cross(b-a, c-a); };
+    int b0 = 0;
+    while(abs(area2(p[n - 1], p[0], p[nxt(b0)])) >
+          abs(area2(p[n - 1], p[0], p[b0])))
+      ++b0;
+    for(int b = b0, a = 0; b != 0 && a <= b0; ++a) {
+      ans.push_back({a, b});
+      while (abs(area2(p[a], p[nxt(a)], p[nxt(b)])) >
+             abs(area2(p[a], p[nxt(a)], p[b]))) {
+        b = nxt(b);
+        if(a != b0 || b != 0) ans.push_back({ a, b });
+        else return ans;
+      }
+      if(abs(area2(p[a], p[nxt(a)], p[nxt(b)])) ==
+         abs(area2(p[a], p[nxt(a)], p[b]))) {
+        if(a != b0 || b != n-1) ans.push_back({ a, nxt(b) });
+        else ans.push_back({ nxt(a), b });
+      }
+    }
     return ans;
-}
-// Perimeter of a Polygon
-// Time Complexity: O(N), Space Complexity: O(1)
-// N: Number of Points
-\end{lstlisting}
-
-\subsection{Convex Hull - Monotone Chain}
-\begin{lstlisting}
-// 2d_geometry_polygon
-
-template<typename T>
-Polygon<T> convex_hull(Polygon<T> points) {
-    int n = (int) points.size();
-    if(n <= 1) return points;
-    vector<Point<T>> hull;
-    // Sorting Points
-    sort(points.begin(), points.end());
-    // it=0: Upper Hull
-    // it=1: Lower Hull
-    for(int it = 0; it < 2; ++it) {
-        int sz = (int) hull.size();
-        for(int i = 0; i < n; ++i) {
-            // if colineal are needed, use < and remove repeated points
-            while((int) hull.size()>=sz+2 && hull[hull.size()-2].orient(hull.back(), points[i]) <= 0) {
-                hull.pop_back();
-            }
-            hull.push_back(points[i]);
-        }
-        // Eliminating repeating points, start and end point
-        hull.pop_back();
-        reverse(points.begin(), points.end());
+  }
+  pt centroid() {
+    pt c{0, 0};
+    lf scale = 6. * area(true);
+    for(int i = 0, n = p.size(); i < n; ++i) {
+      int j = (i+1 == n ? 0 : i+1);
+      c = c + (p[i] + p[j]) * cross(p[i], p[j]);
     }
-    // removing duplicate points
-    if(hull.size()==2 && hull[0]==hull[1])
-        hull.pop_back();
-    return Polygon<T>(hull);
+    return c / scale;
+  }
+  ll pick() {
+    ll boundary = 0;
+    for(int i = 0, n = p.size(); i < n; i++) {
+      int j = (i+1 == n ? 0 : i+1);
+      boundary += __gcd((ll)abs(p[i].x - p[j].x), (ll)abs(p[i].y - p[j].y));
+    }
+    return area() + 1 - boundary/2;
+  }
+  pt& operator[] (int i){ return p[i]; }
+};
+
+struct circle {
+  pt c; T r;
+};
+
+circle center(pt a, pt b, pt c) {
+  b = b-a, c = c-a;
+  assert(cross(b,c) != 0); /// no circumcircle if A,B,C aligned
+  pt cen = a + rot90ccw(b*norm(c) - c*norm(b))/cross(b,c)/2;
+  return {cen, abs(a-cen)};
 }
-// Convex Hull - Monotone Chain
-// Time Complexity: O(N*log2(N)), Space Complexity: O(N)
-// N: Number of Points
+int inter_cl(circle c, line l, pair<pt, pt> &out) {
+  lf h2 = c.r*c.r - l.sq_dist(c.c);
+  if(h2 >= 0) {
+    pt p = l.proj(c.c);
+    pt h = l.v*sqrt(h2)/abs(l.v);
+    out = {p-h, p+h};
+  }
+  return 1 + sign(h2);
+}
+int inter_cc(circle c1, circle c2, pair<pt, pt> &out) {
+  pt d=c2.c-c1.c; double d2=norm(d);
+  if(d2 == 0) { assert(c1.r != c2.r); return 0; } // concentric circles
+  double pd = (d2 + c1.r*c1.r - c2.r*c2.r)/2; // = |O_1P| * d
+  double h2 = c1.r*c1.r - pd*pd/d2; // = h�2
+  if(h2 >= 0) {
+    pt p = c1.c + d*pd/d2, h = rot90ccw(d)*sqrt(h2/d2);
+    out = {p-h, p+h};
+  }
+  return 1 + sign(h2);
+}
+
+int tangents(circle c1, circle c2, bool inner, vector<pair<pt,pt>> &out) {
+  if(inner) c2.r = -c2.r;
+  pt d = c2.c-c1.c;
+  double dr = c1.r-c2.r, d2 = norm(d), h2 = d2-dr*dr;
+  if(d2 == 0 || h2 < 0) { assert(h2 != 0); return 0; }
+  for(double s : {-1,1}) {
+    pt v = (d*dr + rot90ccw(d)*sqrt(h2)*s)/d2;
+    out.push_back({c1.c + v*c1.r, c2.c + v*c2.r});
+  }
+  return 1 + (h2 > 0);
+}
+
+int tangent_through_pt(pt p, circle c, pair<pt, pt> &out) {
+  double d = abs(p - c.c);
+	if(d < c.r) return 0;
+  pt base = c.c-p;
+  double w = sqrt(norm(base) - c.r*c.r);
+  pt a = {w, c.r}, b = {w, -c.r};
+  pt s = p + base*a/norm(base)*w;
+  pt t = p + base*b/norm(base)*w;
+  out = {s, t};
+  return 1 + (abs(c.c-p) == c.r);
+}
 \end{lstlisting}
 
 % FORMULAS
@@ -3125,4 +3658,5 @@ The simplex algorithm operated on linear programs in standard form:\\
 \item $A$ is a $p \times n$ matrix and $b = (b_1,..., b_p)$ constants with $b_j \geq 0$
 \end{itemize}
 
+\newpage
 \end{document}
