@@ -14,7 +14,7 @@ const int d8y[8] = {-1, -1, 0, -1, 1, 0, 1, 1};
 #define rep(i, a, b) for(int i = int(a); i <= int(b); ++i)
 #define rev(i, b, a) for(int i = int(b); i >= int(a); i--)
 #define trav(ref, ds) for(auto &ref: ds)
-#define sz(v) ((int) v.size())
+#define SZ(v) ((int) v.size())
 
 #define precise(n,k) fixed << setprecision(k) << n
 
