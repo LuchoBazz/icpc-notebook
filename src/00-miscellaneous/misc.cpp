@@ -9,12 +9,14 @@ const int d8x[8] = {-1, 0, -1, 1, -1, 1, 0, 1};
 const int d8y[8] = {-1, -1, 0, -1, 1, 0, 1, 1};
 
 #define endl '\n'
+#define _ << ' ' <<
+#define PB push_back
+#define SZ(v) ((int) v.size())
+#define trav(ref, ds) for(auto &ref: ds)
 #define forn(i, b) for(int i = 0; i < int(b); ++i)
 #define forr(i, b) for(int i = int(b)-1; i >= 0; i--)
 #define rep(i, a, b) for(int i = int(a); i <= int(b); ++i)
 #define rev(i, b, a) for(int i = int(b); i >= int(a); i--)
-#define trav(ref, ds) for(auto &ref: ds)
-#define SZ(v) ((int) v.size())
 
 #define precise(n,k) fixed << setprecision(k) << n
 
