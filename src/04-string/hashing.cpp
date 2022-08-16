@@ -23,7 +23,7 @@ struct hashing {
         }
     }
     //Hash del substring en el rango [i, j)
-    int64 value(int l, int r) {
+    int64 query(int l, int r) {
         int a = sub(h[0][r], mul(h[0][l], xpow[0][r-l], MOD[0]), MOD[0]);
         int b = sub(h[1][r], mul(h[1][l], xpow[1][r-l], MOD[1]), MOD[1]);
         return (int64(a)<<32) + b;
@@ -38,3 +38,8 @@ void calc_xpow(int mxlen) {
         }
     }
 }
+
+// Check palindrome: from - to
+// auto hash1 = hash.query(from, to);
+// auto hash2 = hash_reverse.query(n-to-1, n-from-1);
+// hash1 == hash2
