@@ -1,7 +1,7 @@
 // Convierte el string en un polinomio, en O(n), tal que podemos comparar substrings como valores numericos en O(1).
 // Primero llamar calc_xpow() (una unica vez) con el largo maximo de los strings dados.
 // Primes: 1000234999, 1000567999, 1000111997, 1000777121, 1001864327, 1001265673
-using int64 = long long;
+using ll = long long;
 inline int add(int a, int b, const int &mod) { return a+b >= mod ? a+b-mod : a+b; }
 inline int sub(int a, int b, const int &mod) { return a-b < 0 ? a-b+mod : a-b; }
 inline int mul(int a, int b, const int &mod) { return 1LL*a*b % mod; }
@@ -23,10 +23,10 @@ struct hashing {
         }
     }
     //Hash del substring en el rango [i, j)
-    int64 query(int l, int r) {
+    ll query(int l, int r) {
         int a = sub(h[0][r], mul(h[0][l], xpow[0][r-l], MOD[0]), MOD[0]);
         int b = sub(h[1][r], mul(h[1][l], xpow[1][r-l], MOD[1]), MOD[1]);
-        return (int64(a)<<32) + b;
+        return (ll(a)<<32) + b;
     }
 };
 
