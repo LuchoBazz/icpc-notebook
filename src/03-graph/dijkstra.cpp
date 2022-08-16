@@ -1,33 +1,33 @@
 // Dado un grafo con pesos no negativos halla la ruta de costo minimo entre un nodo inicial u y todos los demas nodos.
 
 struct edge {
-    int v; int64 w;
-    bool operator < (const edge &o) const {
-        return o.w < w; // invertidos para que la pq ordene de < a >
+    int v; int64 cost;
+    bool operator < (const edge &other) const {
+        return other.cost < cost;
     }
 };
 
 const int64 inf = 1e18;
-const int MX = 1e5+5; // Cantidad maxima de nodos
-vector<edge> g[MX]; // Lista de adyacencia
-vector<bool> was; // Marca los nodos ya visitados
-vector<int64> dist; // Almacena la distancia a cada nodo
-int pre[MX]; // Almacena el nodo anterior para construir las rutas
-int n, m; // Cantidad de nodos y aristas
+const int N = 1e5+5; // Cantidad maxima de nodos
+vector<edge> adj[N]; // Lista de adyacencia
+bool was[N];         // Marca los nodos ya visitados
+int64 dist[N];       // Almacena la distancia a cada nodo
+int pre[N];          // Almacena el nodo anterior para construir las rutas
+int n, m;            // Cantidad de nodos y aristas
 
 void dijkstra(int u) {
     priority_queue<edge> Q;
     Q.push({u, 0});
     dist[u] = 0;
     
-    while (Q.size()) {
+    while (!Q.empty()) {
         u = Q.top().v; Q.pop();
         if (!was[u]) {
             was[u] = true;
-            for (auto &ed : g[u]) {
+            for (auto &ed : adj[u]) {
                 int v = ed.v;
-                if (!was[v] && dist[v] > dist[u] + ed.w) {
-                    dist[v] = dist[u] + ed.w;
+                if (!was[v] && dist[v] > dist[u] + ed.cost) {
+                    dist[v] = dist[u] + ed.cost;
                     pre[v] = u;
                     Q.push({v, dist[v]});
                 }
@@ -37,8 +37,9 @@ void dijkstra(int u) {
 }
 
 void init() {
-    was.assign(n, false);
-    dist.assign(n, inf);
-    for (int i = 0; i <= n; i++)
-        g[i].clear();
+    for (int i = 0; i <= n; i++) {
+        adj[i].clear();
+        was[i] = 0;
+        dist[i] = inf;
+    }
 }
