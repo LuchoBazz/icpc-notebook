@@ -23,3 +23,8 @@ vector<int64> bellman_ford(int u, bool &cycle) {
     return dist;
     // Time Complexity: O(V*E), Space Complexity: O(V)
 }
+
+// cin >> l >> r >> cost, --l, --r;
+// edges.push_back({l, r, cost});
+// bool cycle = false;
+// vector<int64> dist = bellman_ford(0, cycle);
