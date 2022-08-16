@@ -15,7 +15,7 @@ struct matrix {
         for (int i = 0; i < n; i++)
             for (int k = 0; k < m; k++) if (v[i][k])
                 for (int j = 0; j < o.m; j++)
-                    ans[i][j] = (1ll*v[i][k]*o.v[k][j] + ans[i][j]) % mod;
+                    ans[i][j] = (1LL * v[i][k] * o.v[k][j] + ans[i][j]) % mod;
         return ans;
     }
     
