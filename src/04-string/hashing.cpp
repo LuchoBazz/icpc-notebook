@@ -1,6 +1,6 @@
 // Convierte el string en un polinomio, en O(n), tal que podemos comparar substrings como valores numericos en O(1).
 // Primero llamar calc_xpow() (una unica vez) con el largo maximo de los strings dados.
-
+// Primes: 1000234999, 1000567999, 1000111997, 1000777121, 1001864327, 1001265673
 using int64 = long long;
 inline int add(int a, int b, const int &mod) { return a+b >= mod ? a+b-mod : a+b; }
 inline int sub(int a, int b, const int &mod) { return a-b < 0 ? a-b+mod : a-b; }
