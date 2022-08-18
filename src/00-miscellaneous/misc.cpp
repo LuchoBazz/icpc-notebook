@@ -84,6 +84,21 @@ vector<string> split(string str, string separator) {
     return tokens;
 }
 
+// Custom hashing for secure unordered_map
+struct custom_hash {
+    size_t operator()(uint64_t x) const {
+        static const uint64_t FIXED_RANDOM = 
+            chrono::steady_clock::now().time_since_epoch().count();
+        x ^= FIXED_RANDOM;
+        return x ^ (x >> 16);
+    }
+};
+
+unordered_map<ll, int, custom_hash> safe_map;
+gp_hash_table<ll, int, custom_hash> safe_hash_table;
+safe_map.reserve(1024); // Power of 2
+safe_map.max_load_factor(0.25);
+
 // Python Read
 from sys import stdin, stdout
 list(map(func, stdin.readline().strip().split()))

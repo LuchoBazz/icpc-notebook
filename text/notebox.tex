@@ -58,7 +58,7 @@
 
 \begin{document}
 
-\title{ICPC Notebook - UNAL - quieroUNALpinito}
+\title{ICPC Notebook - UNAL}
 \author{Universidad Nacional de colombia}
 \maketitle
 \tableofcontents
@@ -69,7 +69,6 @@
 
 \subsection{Miscellaneous}
 \begin{lstlisting}
-
 #define between(a, b, c) (a <= b && b <= c)
 #define has_key(it, key) (it.find(key) != it.end())
 #define check_coord(x, y, n, m) (0 <=x && x < n && 0 <= y && y < m)
@@ -155,17 +154,20 @@ vector<string> split(string str, string separator) {
     return tokens;
 }
 
-template<class X>
-struct getId {
-	map<X, int> ids;
-	int operator[](const X &x) {
-		auto &v = ids[x];
-		if(v == 0) v = (int) ids.size();
-		return v;
-	}
-	int size() { return (int) ids.size(); }
+// Custom hashing for secure unordered_map
+struct custom_hash {
+    size_t operator()(uint64_t x) const {
+        static const uint64_t FIXED_RANDOM = 
+            chrono::steady_clock::now().time_since_epoch().count();
+        x ^= FIXED_RANDOM;
+        return x ^ (x >> 16);
+    }
 };
-// Usage: getId<int> ids;
+
+unordered_map<ll, int, custom_hash> safe_map;
+gp_hash_table<ll, int, custom_hash> safe_hash_table;
+safe_map.reserve(1024); // Power of 2
+safe_map.max_load_factor(0.25);
 
 // Python Read
 from sys import stdin, stdout
