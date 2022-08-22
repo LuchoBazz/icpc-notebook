@@ -16,3 +16,5 @@ double ternary_search(const function<double(double)> &func, double low, double h
     }
     return func(low);
 }
+// Usage:
+// double ans = ternary_search(funct1, low, high);
