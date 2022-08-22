@@ -18,7 +18,9 @@ const int d8y[8] = {-1, -1, 0, -1, 1, 0, 1, 1};
 #define rep(i, a, b) for(int i = int(a); i <= int(b); ++i)
 #define rev(i, b, a) for(int i = int(b); i >= int(a); i--)
 
-#define precise(n,k) fixed << setprecision(k) << n
+#define precise(n, k) fixed << setprecision(k) << n
+// or at main()
+cout << fixed << setprecision(9);
 
 #define all(x) (x).begin(), (x).end()
 #define rall(x) (x).rbegin(), (x).rend()
