@@ -14,5 +14,5 @@ double ternary_search(const function<double(double)> &func, double low, double h
             high = mid2;
         it++;
     }
-    return f(low);
+    return func(low);
 }
