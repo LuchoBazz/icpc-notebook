@@ -1,3 +1,4 @@
+// https://cses.fi/problemset/task/1653
 int n; // the number of people
 ll x;  // maximum allowed weight in the elevator
 vector<ll> W; // w1, w2, ..., wn: the weight of each person.
