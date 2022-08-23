@@ -1,3 +1,4 @@
+// cses book: pag 103-104
 // https://cses.fi/problemset/task/1653
 int n; // the number of people
 ll x;  // maximum allowed weight in the elevator
