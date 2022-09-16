@@ -70,10 +70,25 @@ scanf("%o", &value); //int octal
 printf("%.6lf", value);
 
 // Genera un numero entero aleatorio en el rango [a, b]. Para ll usar "mt19937_64" y cambiar todo a ll.
-
 mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 int rand(int a, int b) {
     return uniform_int_distribution<int>(a, b)(rng);
+}
+
+// Generación de valores random de diferentes tipos
+template <typename T>
+T random(const T from, const T to) {
+    static random_device rdev;
+    static default_random_engine re(rdev());
+
+    using dist_type = typename conditional<
+        is_floating_point<T>::value,
+        uniform_real_distribution<T>,
+        uniform_int_distribution<T>
+    >::type;
+
+    dist_type uni(from, to);
+    return static_cast<T>(uni(re));
 }
 
 vector<string> split(string str, string separator) {
